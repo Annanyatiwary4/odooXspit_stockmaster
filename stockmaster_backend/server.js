@@ -5,6 +5,13 @@ import connectDB from "./config/db.js";
 
 // Import routes
 import authRoutes from "./routes/authRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
+import warehouseRoutes from "./routes/warehouseRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import receiptRoutes from "./routes/receiptRoutes.js";
+import deliveryRoutes from "./routes/deliveryRoutes.js";
+import transferRoutes from "./routes/transferRoutes.js";
+import adjustmentRoutes from "./routes/adjustmentRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -27,6 +34,13 @@ app.get("/", (req, res) => {
 
 // API Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/warehouses", warehouseRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/receipts", receiptRoutes);
+app.use("/api/deliveries", deliveryRoutes);
+app.use("/api/transfers", transferRoutes);
+app.use("/api/adjustments", adjustmentRoutes);
 
 // 404 handler
 app.use((req, res) => {

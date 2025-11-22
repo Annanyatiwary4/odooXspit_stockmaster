@@ -107,5 +107,259 @@ export const authAPI = {
   },
 };
 
+// Products API
+export const productsAPI = {
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/products?${queryString}`);
+  },
+  getById: async (id) => {
+    return apiRequest(`/products/${id}`);
+  },
+  create: async (data) => {
+    return apiRequest('/products', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  update: async (id, data) => {
+    return apiRequest(`/products/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  delete: async (id) => {
+    return apiRequest(`/products/${id}`, {
+      method: 'DELETE',
+    });
+  },
+  updateStock: async (id, locationId, quantity) => {
+    return apiRequest(`/products/${id}/stock`, {
+      method: 'PUT',
+      body: { locationId, quantity },
+    });
+  },
+  getCategories: async () => {
+    return apiRequest('/products/categories');
+  },
+};
+
+// Warehouses API
+export const warehousesAPI = {
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/warehouses?${queryString}`);
+  },
+  getById: async (id) => {
+    return apiRequest(`/warehouses/${id}`);
+  },
+  create: async (data) => {
+    return apiRequest('/warehouses', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  update: async (id, data) => {
+    return apiRequest(`/warehouses/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  delete: async (id) => {
+    return apiRequest(`/warehouses/${id}`, {
+      method: 'DELETE',
+    });
+  },
+  addLocation: async (warehouseId, data) => {
+    return apiRequest(`/warehouses/${warehouseId}/locations`, {
+      method: 'POST',
+      body: data,
+    });
+  },
+  updateLocation: async (warehouseId, locationId, data) => {
+    return apiRequest(`/warehouses/${warehouseId}/locations/${locationId}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  deleteLocation: async (warehouseId, locationId) => {
+    return apiRequest(`/warehouses/${warehouseId}/locations/${locationId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Admin API
+export const adminAPI = {
+  getUsers: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/users?${queryString}`);
+  },
+  createUser: async (data) => {
+    return apiRequest('/admin/users', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  updateUser: async (id, data) => {
+    return apiRequest(`/admin/users/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  deactivateUser: async (id) => {
+    return apiRequest(`/admin/users/${id}/deactivate`, {
+      method: 'PUT',
+    });
+  },
+  getDashboardStats: async () => {
+    return apiRequest('/admin/dashboard');
+  },
+};
+
+// Receipts API
+export const receiptsAPI = {
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/receipts?${queryString}`);
+  },
+  getById: async (id) => {
+    return apiRequest(`/receipts/${id}`);
+  },
+  create: async (data) => {
+    return apiRequest('/receipts', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  update: async (id, data) => {
+    return apiRequest(`/receipts/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  validate: async (id) => {
+    return apiRequest(`/receipts/${id}/validate`, {
+      method: 'POST',
+    });
+  },
+  cancel: async (id) => {
+    return apiRequest(`/receipts/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Deliveries API
+export const deliveriesAPI = {
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/deliveries?${queryString}`);
+  },
+  getById: async (id) => {
+    return apiRequest(`/deliveries/${id}`);
+  },
+  create: async (data) => {
+    return apiRequest('/deliveries', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  update: async (id, data) => {
+    return apiRequest(`/deliveries/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  pick: async (id, items = null) => {
+    return apiRequest(`/deliveries/${id}/pick`, {
+      method: 'POST',
+      body: items ? { items } : {},
+    });
+  },
+  pack: async (id, items = null) => {
+    return apiRequest(`/deliveries/${id}/pack`, {
+      method: 'POST',
+      body: items ? { items } : {},
+    });
+  },
+  validate: async (id) => {
+    return apiRequest(`/deliveries/${id}/validate`, {
+      method: 'POST',
+    });
+  },
+  cancel: async (id) => {
+    return apiRequest(`/deliveries/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Transfers API
+export const transfersAPI = {
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/transfers?${queryString}`);
+  },
+  getById: async (id) => {
+    return apiRequest(`/transfers/${id}`);
+  },
+  create: async (data) => {
+    return apiRequest('/transfers', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  update: async (id, data) => {
+    return apiRequest(`/transfers/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  execute: async (id) => {
+    return apiRequest(`/transfers/${id}/execute`, {
+      method: 'POST',
+    });
+  },
+  cancel: async (id) => {
+    return apiRequest(`/transfers/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Adjustments API
+export const adjustmentsAPI = {
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/adjustments?${queryString}`);
+  },
+  getById: async (id) => {
+    return apiRequest(`/adjustments/${id}`);
+  },
+  create: async (data) => {
+    return apiRequest('/adjustments', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  update: async (id, data) => {
+    return apiRequest(`/adjustments/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  validate: async (id) => {
+    return apiRequest(`/adjustments/${id}/validate`, {
+      method: 'POST',
+    });
+  },
+  cancel: async (id) => {
+    return apiRequest(`/adjustments/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 export default apiRequest;
 

@@ -8,6 +8,15 @@ import { ForgotPassword } from "./components/auth/ForgotPassword";
 import { AdminDashboard } from "./pages/dashboards/AdminDashboard";
 import { ManagerDashboard } from "./pages/dashboards/ManagerDashboard";
 import { WarehouseDashboard } from "./pages/dashboards/WarehouseDashboard";
+import { Products } from "./pages/admin/Products";
+import { Warehouses } from "./pages/admin/Warehouses";
+import { Users } from "./pages/admin/Users";
+import { StockManagement } from "./pages/admin/StockManagement";
+import { Settings } from "./pages/admin/Settings";
+import { Receipts } from "./pages/manager/Receipts";
+import { Deliveries } from "./pages/manager/Deliveries";
+import { Transfers } from "./pages/manager/Transfers";
+import { Adjustments } from "./pages/manager/Adjustments";
 import { Profile } from "./pages/Profile";
 import { Unauthorized } from "./pages/Unauthorized";
 
@@ -51,6 +60,78 @@ function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/products"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager']}>
+              <Products />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/warehouses"
+          element={
+            <ProtectedRoute requiredRoles="admin">
+              <Warehouses />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute requiredRoles="admin">
+              <Users />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/stock"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager']}>
+              <StockManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute requiredRoles="admin">
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/receipts"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager', 'warehouse']}>
+              <Receipts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/deliveries"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager', 'warehouse']}>
+              <Deliveries />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/transfers"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager', 'warehouse']}>
+              <Transfers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/adjustments"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager', 'warehouse']}>
+              <Adjustments />
             </ProtectedRoute>
           }
         />
