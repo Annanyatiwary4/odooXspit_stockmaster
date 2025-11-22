@@ -146,49 +146,51 @@ export function ForgotPassword() {
             </form>
           )}
 
-          {step === 2 && (
-            <form onSubmit={handleVerifyOTP} className="flex flex-col gap-6">
-              {error && (
-                <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
-                  {error}
-                </div>
-              )}
-              {message && (
-                <div className="bg-green-500/10 text-green-600 dark:text-green-400 text-sm p-3 rounded-md">
-                  {message}
-                </div>
-              )}
+         {step === 2 && (
+  <form onSubmit={handleVerifyOTP} className="flex flex-col gap-6">
+    {error && (
+      <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
+        {error}
+      </div>
+    )}
+    {message && (
+      <div className="bg-green-500/10 text-green-600 dark:text-green-400 text-sm p-3 rounded-md">
+        {message}
+      </div>
+    )}
 
-              <div className="grid gap-2">
-                <Label htmlFor="otp">OTP Code</Label>
-                <Input
-                  id="otp"
-                  type="text"
-                  placeholder="Enter 6-digit OTP"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  required
-                  disabled={loading}
-                  maxLength={6}
-                />
-              </div>
+    <div className="grid gap-2">
+      <Label htmlFor="otp">OTP Code</Label>
+      <Input
+        id="otp"
+        type="text"
+        placeholder="Enter 6-digit OTP"
+        value={otp}
+        onChange={(e) => setOtp(e.target.value)}
+        required
+        disabled={loading}
+        maxLength={6}
+      />
+    </div>
 
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setStep(1)}
-                  disabled={loading}
-                >
-                  Back
-                </Button>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Verifying..." : "Verify OTP"}
-                </Button>
-              </div>
-            </form>
-          )}
+    {/* Stacked verify button */}
+    <Button type="submit" className="w-full" disabled={loading}>
+      {loading ? "Verifying..." : "Verify OTP"}
+    </Button>
+
+    {/* Back button below */}
+    <Button
+      type="button"
+      variant="outline"
+      className="w-full"
+      onClick={() => setStep(1)}
+      disabled={loading}
+    >
+      Back
+    </Button>
+  </form>
+)}
+
 
           {step === 3 && (
             <form onSubmit={handleResetPassword} className="flex flex-col gap-6">
