@@ -13,6 +13,7 @@ import { Warehouses } from "./pages/admin/Warehouses";
 import { Users } from "./pages/admin/Users";
 import { StockManagement } from "./pages/admin/StockManagement";
 import { Settings } from "./pages/admin/Settings";
+import { Receipts } from "./pages/manager/Receipts";
 import { Profile } from "./pages/Profile";
 import { Unauthorized } from "./pages/Unauthorized";
 
@@ -96,6 +97,14 @@ function App() {
           element={
             <ProtectedRoute requiredRoles="admin">
               <Settings />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/receipts"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager', 'warehouse']}>
+              <Receipts />
             </ProtectedRoute>
           }
         />
