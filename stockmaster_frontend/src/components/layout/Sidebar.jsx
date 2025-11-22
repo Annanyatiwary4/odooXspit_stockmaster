@@ -22,6 +22,7 @@ const menuItems = {
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard/admin" },
     { icon: Package, label: "Products", path: "/products" },
     { icon: Warehouse, label: "Warehouses", path: "/warehouses" },
+    { icon: Package, label: "Stock Management", path: "/admin/stock" },
     { icon: UsersIcon, label: "Users", path: "/admin/users" },
     { icon: Receipt, label: "Receipts", path: "/receipts" },
     { icon: Truck, label: "Deliveries", path: "/deliveries" },

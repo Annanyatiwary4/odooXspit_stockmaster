@@ -11,6 +11,8 @@ import { WarehouseDashboard } from "./pages/dashboards/WarehouseDashboard";
 import { Products } from "./pages/admin/Products";
 import { Warehouses } from "./pages/admin/Warehouses";
 import { Users } from "./pages/admin/Users";
+import { StockManagement } from "./pages/admin/StockManagement";
+import { Settings } from "./pages/admin/Settings";
 import { Profile } from "./pages/Profile";
 import { Unauthorized } from "./pages/Unauthorized";
 
@@ -78,6 +80,22 @@ function App() {
           element={
             <ProtectedRoute requiredRoles="admin">
               <Users />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/stock"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager']}>
+              <StockManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute requiredRoles="admin">
+              <Settings />
             </ProtectedRoute>
           }
         />
