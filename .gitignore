@@ -7,7 +7,6 @@ pnpm-debug.log*
 
 # ==== Environment Files ====
 .env
-.env.*
 *.local
 
 # ==== Build Output ====
