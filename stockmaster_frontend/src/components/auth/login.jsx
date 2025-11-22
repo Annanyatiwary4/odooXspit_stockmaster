@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -10,60 +12,108 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ThemeToggle } from "@/components/ThemeToggle"
+import { useAuth } from "@/contexts/AuthContext"
 
 export function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const result = await login(email, password);
+      if (result.success) {
+        // Redirect based on role
+        const userRole = result.user?.role || 'warehouse';
+        if (userRole === 'admin') {
+          navigate('/dashboard/admin');
+        } else if (userRole === 'manager') {
+          navigate('/dashboard/manager');
+        } else {
+          navigate('/dashboard/warehouse');
+        }
+      } else {
+        setError(result.error || 'Login failed');
+      }
+    } catch (err) {
+      setError(err.message || 'An error occurred during login');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background">
+    <div className="min-h-screen w-full flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm shadow-lg">
         <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
+          <CardTitle>Login to StockMaster</CardTitle>
           <CardDescription>
-            Enter your email below to log in
+            Enter your credentials to access your account
           </CardDescription>
 
           <CardAction>
-            <Button variant="link" className="px-0">
-              Sign Up
-            </Button>
+            <Link to="/signup">
+              <Button variant="link" className="px-0">
+                Don't have an account? Sign Up
+              </Button>
+            </Link>
           </CardAction>
         </CardHeader>
 
         <CardContent>
-          <form className="flex flex-col gap-6">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            {error && (
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
+                {error}
+              </div>
+            )}
+
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="m@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={loading}
               />
             </div>
 
             <div className="grid gap-2">
               <div className="flex items-center">
                 <Label htmlFor="password">Password</Label>
-                <a
-                  href="#"
+                <Link
+                  to="/forgot-password"
                   className="ml-auto text-sm underline-offset-4 hover:underline"
                 >
                   Forgot?
-                </a>
+                </Link>
               </div>
-              <Input id="password" type="password" required />
+              <Input 
+                id="password" 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={loading}
+              />
             </div>
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Logging in..." : "Login"}
+            </Button>
           </form>
         </CardContent>
-
-        <CardFooter className="flex flex-col gap-2">
-          <Button type="submit" className="w-full">
-            Login
-          </Button>
-
-          <Button variant="outline" className="w-full">
-            Login with Google
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   );

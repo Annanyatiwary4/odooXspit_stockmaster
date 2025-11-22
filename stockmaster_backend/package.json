@@ -1,21 +1,29 @@
 {
   "name": "stockmaster_backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "StockMaster Inventory Management Backend API",
+  "main": "server.js",
   "scripts": {
-  "dev": "nodemon server.js"
-},
-  
-  "keywords": [],
+    "dev": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "inventory",
+    "management",
+    "api"
+  ],
   "author": "",
   "license": "ISC",
   "type": "module",
-  "devDependencies": {
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "mongoose": "^9.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^9.0.0"
+  },
+  "devDependencies": {
     "nodemon": "^3.1.11"
   }
 }
