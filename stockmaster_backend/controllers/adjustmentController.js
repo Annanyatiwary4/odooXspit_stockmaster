@@ -1,6 +1,7 @@
 import Adjustment from "../models/adjustment.js";
 import Product from "../models/product.js";
 import Warehouse from "../models/warehouse.js";
+import { logStockMovement } from "../utils/stockLedger.js";
 
 // Helper function to generate adjustment number
 const generateAdjustmentNumber = async () => {
@@ -37,9 +38,15 @@ export const getAdjustments = async (req, res) => {
     
     const query = {};
     
+    // For warehouse staff, filter by assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      query.warehouseId = req.user.assignedWarehouse;
+    } else if (warehouseId) {
+      query.warehouseId = warehouseId;
+    }
+    
     if (status) query.status = status;
     if (productId) query.productId = productId;
-    if (warehouseId) query.warehouseId = warehouseId;
     if (adjustmentType) query.adjustmentType = adjustmentType;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -92,6 +99,18 @@ export const getAdjustment = async (req, res) => {
       });
     }
 
+    // For warehouse staff, ensure they can only view adjustments from their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const adjustmentWarehouseId = adjustment.warehouseId._id || adjustment.warehouseId;
+      if (assignedWarehouseId.toString() !== adjustmentWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only view adjustments from your assigned warehouse",
+        });
+      }
+    }
+
     res.status(200).json({
       success: true,
       data: adjustment,
@@ -126,6 +145,17 @@ export const createAdjustment = async (req, res) => {
         success: false,
         message: "Please provide product, warehouse, location, counted quantity, and reason",
       });
+    }
+
+    // For warehouse staff, enforce assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      if (assignedWarehouseId.toString() !== warehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only create adjustments for your assigned warehouse",
+        });
+      }
     }
 
     // Verify product exists
@@ -209,6 +239,18 @@ export const updateAdjustment = async (req, res) => {
       });
     }
 
+    // For warehouse staff, ensure they can only update adjustments from their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const adjustmentWarehouseId = adjustment.warehouseId._id || adjustment.warehouseId;
+      if (assignedWarehouseId.toString() !== adjustmentWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only update adjustments from your assigned warehouse",
+        });
+      }
+    }
+
     // Cannot update validated adjustments
     if (adjustment.status === 'done') {
       return res.status(400).json({
@@ -269,6 +311,18 @@ export const validateAdjustment = async (req, res) => {
       });
     }
 
+    // For warehouse staff, ensure they can only validate adjustments from their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const adjustmentWarehouseId = adjustment.warehouseId._id || adjustment.warehouseId;
+      if (assignedWarehouseId.toString() !== adjustmentWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only validate adjustments from your assigned warehouse",
+        });
+      }
+    }
+
     if (adjustment.status === 'done') {
       return res.status(400).json({
         success: false,
@@ -283,8 +337,31 @@ export const validateAdjustment = async (req, res) => {
       });
     }
 
+    // Get quantity before adjustment
+    const product = await Product.findById(adjustment.productId);
+    const quantityBefore = product.stockByLocation.get(adjustment.locationId) || 0;
+    const quantityChange = adjustment.difference; // Can be positive or negative
+
     // Update stock to counted quantity
     await updateProductStock(adjustment.productId, adjustment.locationId, adjustment.countedQuantity);
+
+    // Get quantity after update
+    const productAfter = await Product.findById(adjustment.productId);
+    const quantityAfter = productAfter.stockByLocation.get(adjustment.locationId) || 0;
+
+    // Log stock movement
+    await logStockMovement({
+      movementType: 'adjustment',
+      documentId: adjustment._id,
+      documentNumber: adjustment.adjustmentNumber,
+      productId: adjustment.productId,
+      warehouseId: adjustment.warehouseId,
+      locationId: adjustment.locationId,
+      quantity: quantityChange, // Use the actual difference for logging (can be positive or negative)
+      reference: `${adjustment.adjustmentType}: ${adjustment.reason}`,
+      notes: adjustment.notes || "",
+      performedBy: req.user._id
+    });
 
     // Update adjustment status
     adjustment.status = 'done';
@@ -324,6 +401,18 @@ export const cancelAdjustment = async (req, res) => {
         success: false,
         message: "Adjustment not found",
       });
+    }
+
+    // For warehouse staff, ensure they can only cancel adjustments from their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const adjustmentWarehouseId = adjustment.warehouseId._id || adjustment.warehouseId;
+      if (assignedWarehouseId.toString() !== adjustmentWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only cancel adjustments from your assigned warehouse",
+        });
+      }
     }
 
     if (adjustment.status === 'done') {

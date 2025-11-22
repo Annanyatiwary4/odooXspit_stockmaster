@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 // ThemeToggle intentionally omitted from footer per design
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { User2, ChevronUp } from "lucide-react";
+import { User2, ChevronUp, History } from "lucide-react";
 import {
   LayoutDashboard,
   Package,
@@ -39,6 +39,7 @@ const items = {
     { icon: Truck, label: "Deliveries", path: "/deliveries" },
     { icon: Move, label: "Transfers", path: "/transfers" },
     { icon: FileText, label: "Adjustments", path: "/adjustments" },
+    { icon: History, label: "Stock Ledger", path: "/ledger" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ],
   manager: [
@@ -48,6 +49,7 @@ const items = {
     { icon: Truck, label: "Deliveries", path: "/deliveries" },
     { icon: Move, label: "Transfers", path: "/transfers" },
     { icon: FileText, label: "Adjustments", path: "/adjustments" },
+    { icon: History, label: "Stock Ledger", path: "/ledger" },
   ],
   warehouse: [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard/warehouse" },

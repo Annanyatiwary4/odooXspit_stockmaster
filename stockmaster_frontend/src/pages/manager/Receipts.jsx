@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Edit, Trash2, CheckCircle, X, Package } from "lucide-react";
+import { Plus, Search, Edit, Trash2, CheckCircle, X, Package, Printer } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { receiptsAPI, warehousesAPI, productsAPI } from "@/lib/api";
 
@@ -38,7 +38,7 @@ export function Receipts() {
     status: "draft",
     items: [],
   });
-  const { isManager, isAdmin } = useAuth();
+  const { isManager, isAdmin, isWarehouse, user } = useAuth();
   const [itemForm, setItemForm] = useState({
     productId: "",
     quantity: "",
@@ -52,6 +52,12 @@ export function Receipts() {
     loadReceipts();
     loadWarehouses();
     loadProducts();
+    // Auto-set warehouse for warehouse staff
+    if (isWarehouse() && user?.assignedWarehouse && !formData.warehouseId) {
+      const assignedWarehouseId = user.assignedWarehouse._id || user.assignedWarehouse;
+      setFormData(prev => ({ ...prev, warehouseId: assignedWarehouseId }));
+      handleWarehouseChange(assignedWarehouseId);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, statusFilter, warehouseFilter]);
 
@@ -223,6 +229,107 @@ export function Receipts() {
     }
   };
 
+  const handlePrint = async (receipt) => {
+    // Load warehouse details if needed
+    let warehouseDetails = receipt.warehouseId;
+    if (receipt.warehouseId && !receipt.warehouseId.locations) {
+      try {
+        const wh = await warehousesAPI.getById(receipt.warehouseId._id || receipt.warehouseId);
+        warehouseDetails = wh.data;
+      } catch (error) {
+        console.error("Error loading warehouse:", error);
+      }
+    }
+
+    const printWindow = window.open('', '_blank');
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Receipt ${receipt.receiptNumber}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .header h1 { margin: 0; }
+            .details { margin-bottom: 20px; }
+            .details table { width: 100%; border-collapse: collapse; }
+            .details td { padding: 8px; border-bottom: 1px solid #ddd; }
+            .details td:first-child { font-weight: bold; width: 150px; }
+            .items { margin-top: 30px; }
+            .items table { width: 100%; border-collapse: collapse; }
+            .items th, .items td { padding: 10px; text-align: left; border: 1px solid #ddd; }
+            .items th { background-color: #f5f5f5; }
+            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            @media print {
+              body { padding: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>RECEIPT</h1>
+            <p>StockMaster Inventory System</p>
+          </div>
+          <div class="details">
+            <table>
+              <tr><td>Receipt Number:</td><td>${receipt.receiptNumber}</td></tr>
+              <tr><td>Date:</td><td>${new Date(receipt.receiptDate).toLocaleDateString()}</td></tr>
+              <tr><td>Supplier:</td><td>${receipt.supplier}</td></tr>
+              ${receipt.supplierEmail ? `<tr><td>Supplier Email:</td><td>${receipt.supplierEmail}</td></tr>` : ''}
+              ${receipt.supplierPhone ? `<tr><td>Supplier Phone:</td><td>${receipt.supplierPhone}</td></tr>` : ''}
+              <tr><td>Warehouse:</td><td>${warehouseDetails?.name || receipt.warehouseId?.name || receipt.warehouseId}</td></tr>
+              ${receipt.referenceNumber ? `<tr><td>Reference:</td><td>${receipt.referenceNumber}</td></tr>` : ''}
+              <tr><td>Status:</td><td>${receipt.status.toUpperCase()}</td></tr>
+            </table>
+          </div>
+          <div class="items">
+            <h3>Items Received</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th>Quantity</th>
+                  <th>UOM</th>
+                  <th>Location</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${receipt.items.map((item, index) => {
+                  const product = item.productId?.name || item.productId;
+                  const sku = item.productId?.sku || '';
+                  const uom = item.productId?.uom || '';
+                  const location = warehouseDetails?.locations?.find(l => l._id === item.locationId)?.name || item.locationId;
+                  return `
+                    <tr>
+                      <td>${product}</td>
+                      <td>${sku}</td>
+                      <td>${item.quantity}</td>
+                      <td>${uom}</td>
+                      <td>${location}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+          ${receipt.notes ? `<div class="notes"><p><strong>Notes:</strong> ${receipt.notes}</p></div>` : ''}
+          <div class="footer">
+            <p>Generated on ${new Date().toLocaleString()}</p>
+            ${receipt.validatedBy ? `<p>Validated by: ${receipt.validatedBy?.name || receipt.validatedBy}</p>` : ''}
+          </div>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
   const resetForm = () => {
     setFormData({
       supplier: "",
@@ -306,22 +413,34 @@ export function Receipts() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Warehouse</Label>
-                <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Warehouses</SelectItem>
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh._id} value={wh._id}>
-                        {wh.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {(isAdmin() || isManager()) && (
+                <div>
+                  <Label>Warehouse</Label>
+                  <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Warehouses</SelectItem>
+                      {warehouses.map((wh) => (
+                        <SelectItem key={wh._id} value={wh._id}>
+                          {wh.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {isWarehouse() && user?.assignedWarehouse && (
+                <div>
+                  <Label>Warehouse</Label>
+                  <Input 
+                    value={user.assignedWarehouse?.name || 'Assigned Warehouse'} 
+                    disabled 
+                    className="bg-muted"
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -359,18 +478,26 @@ export function Receipts() {
                   </div>
                   <div>
                     <Label>Warehouse *</Label>
-                    <Select value={formData.warehouseId} onValueChange={handleWarehouseChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select warehouse" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {warehouses.map((wh) => (
-                          <SelectItem key={wh._id} value={wh._id}>
-                            {wh.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {isWarehouse() && user?.assignedWarehouse ? (
+                      <Input 
+                        value={user.assignedWarehouse?.name || warehouses.find(w => w._id === formData.warehouseId)?.name || 'Assigned Warehouse'} 
+                        disabled 
+                        className="bg-muted"
+                      />
+                    ) : (
+                      <Select value={formData.warehouseId} onValueChange={handleWarehouseChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select warehouse" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {warehouses.map((wh) => (
+                            <SelectItem key={wh._id} value={wh._id}>
+                              {wh.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   <div>
                     <Label>Supplier Email</Label>
@@ -562,6 +689,14 @@ export function Receipts() {
                         </p>
                       </div>
                       <div className="flex gap-2 items-center">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePrint(receipt)}
+                        >
+                          <Printer className="size-4 mr-2" />
+                          Print
+                        </Button>
                         {receipt.status !== 'done' && receipt.status !== 'canceled' && (
                           <>
                             <Button

@@ -18,7 +18,9 @@ export const protect = async (req, res, next) => {
 
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key-change-in-production");
-      req.user = await User.findById(decoded.id).select("-password");
+      req.user = await User.findById(decoded.id)
+        .select("-password")
+        .populate('assignedWarehouse', 'name code _id');
       
       if (!req.user) {
         return res.status(401).json({ 

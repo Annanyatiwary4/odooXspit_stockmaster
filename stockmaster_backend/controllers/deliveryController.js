@@ -1,6 +1,7 @@
 import Delivery from "../models/delivery.js";
 import Product from "../models/product.js";
 import Warehouse from "../models/warehouse.js";
+import { logStockMovement } from "../utils/stockLedger.js";
 
 // Helper function to generate delivery number
 const generateDeliveryNumber = async () => {
@@ -46,8 +47,14 @@ export const getDeliveries = async (req, res) => {
     
     const query = {};
     
+    // For warehouse staff, filter by assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      query.warehouseId = req.user.assignedWarehouse;
+    } else if (warehouseId) {
+      query.warehouseId = warehouseId;
+    }
+    
     if (status) query.status = status;
-    if (warehouseId) query.warehouseId = warehouseId;
     if (customer) query.customer = { $regex: customer, $options: 'i' };
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -104,6 +111,18 @@ export const getDelivery = async (req, res) => {
       });
     }
 
+    // For warehouse staff, ensure they can only view deliveries from their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const deliveryWarehouseId = delivery.warehouseId._id || delivery.warehouseId;
+      if (assignedWarehouseId.toString() !== deliveryWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only view deliveries from your assigned warehouse",
+        });
+      }
+    }
+
     res.status(200).json({
       success: true,
       data: delivery,
@@ -140,6 +159,17 @@ export const createDelivery = async (req, res) => {
         success: false,
         message: "Please provide customer, warehouse, and items",
       });
+    }
+
+    // For warehouse staff, enforce assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      if (assignedWarehouseId.toString() !== warehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only create deliveries for your assigned warehouse",
+        });
+      }
     }
 
     // Verify warehouse exists
@@ -232,6 +262,18 @@ export const updateDelivery = async (req, res) => {
       });
     }
 
+    // For warehouse staff, ensure they can only update deliveries from their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const deliveryWarehouseId = delivery.warehouseId._id || delivery.warehouseId;
+      if (assignedWarehouseId.toString() !== deliveryWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only update deliveries from your assigned warehouse",
+        });
+      }
+    }
+
     // Cannot update validated deliveries
     if (delivery.status === 'done') {
       return res.status(400).json({
@@ -259,6 +301,17 @@ export const updateDelivery = async (req, res) => {
     if (customerPhone !== undefined) delivery.customerPhone = customerPhone;
     if (deliveryAddress !== undefined) delivery.deliveryAddress = deliveryAddress;
     if (warehouseId) {
+      // For warehouse staff, enforce assigned warehouse
+      if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+        const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+        if (assignedWarehouseId.toString() !== warehouseId.toString()) {
+          return res.status(403).json({
+            success: false,
+            message: "You can only update deliveries for your assigned warehouse",
+          });
+        }
+      }
+      
       const warehouse = await Warehouse.findById(warehouseId);
       if (!warehouse) {
         return res.status(404).json({
@@ -327,6 +380,18 @@ export const pickDelivery = async (req, res) => {
       });
     }
 
+    // For warehouse staff, ensure they can only pick deliveries from their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const deliveryWarehouseId = delivery.warehouseId._id || delivery.warehouseId;
+      if (assignedWarehouseId.toString() !== deliveryWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only pick deliveries from your assigned warehouse",
+        });
+      }
+    }
+
     if (delivery.status === 'done' || delivery.status === 'canceled') {
       return res.status(400).json({
         success: false,
@@ -389,6 +454,18 @@ export const packDelivery = async (req, res) => {
         success: false,
         message: "Delivery not found",
       });
+    }
+
+    // For warehouse staff, ensure they can only pack deliveries from their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const deliveryWarehouseId = delivery.warehouseId._id || delivery.warehouseId;
+      if (assignedWarehouseId.toString() !== deliveryWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only pack deliveries from your assigned warehouse",
+        });
+      }
     }
 
     if (delivery.status === 'done' || delivery.status === 'canceled') {
@@ -461,6 +538,18 @@ export const validateDelivery = async (req, res) => {
       });
     }
 
+    // For warehouse staff, ensure they can only validate deliveries from their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const deliveryWarehouseId = delivery.warehouseId._id || delivery.warehouseId;
+      if (assignedWarehouseId.toString() !== deliveryWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only validate deliveries from your assigned warehouse",
+        });
+      }
+    }
+
     if (delivery.status === 'done') {
       return res.status(400).json({
         success: false,
@@ -475,9 +564,23 @@ export const validateDelivery = async (req, res) => {
       });
     }
 
-    // Update stock for each item (subtract)
+    // Update stock for each item (subtract) and log movements
     for (const item of delivery.items) {
       await updateProductStock(item.productId, item.locationId, item.quantity, 'subtract');
+      
+      // Log stock movement
+      await logStockMovement({
+        movementType: 'delivery',
+        documentId: delivery._id,
+        documentNumber: delivery.deliveryNumber,
+        productId: item.productId,
+        warehouseId: delivery.warehouseId,
+        locationId: item.locationId,
+        quantity: item.quantity,
+        reference: delivery.customer,
+        notes: delivery.notes || "",
+        performedBy: req.user._id
+      });
     }
 
     // Update delivery status
@@ -518,6 +621,18 @@ export const cancelDelivery = async (req, res) => {
         success: false,
         message: "Delivery not found",
       });
+    }
+
+    // For warehouse staff, ensure they can only cancel deliveries from their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const deliveryWarehouseId = delivery.warehouseId._id || delivery.warehouseId;
+      if (assignedWarehouseId.toString() !== deliveryWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only cancel deliveries from your assigned warehouse",
+        });
+      }
     }
 
     if (delivery.status === 'done') {

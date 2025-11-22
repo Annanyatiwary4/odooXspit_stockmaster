@@ -12,12 +12,14 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ThemeToggle } from "@/components/ThemeToggle"
+import { Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 
 export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -71,7 +73,7 @@ export function Login() {
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             {error && (
-              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
+              <div role="alert" aria-live="assertive" className="bg-destructive/10 text-destructive text-sm p-3 rounded-md">
                 {error}
               </div>
             )}
@@ -80,6 +82,8 @@ export function Login() {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
+                autoFocus
+                autoComplete="email"
                 type="email"
                 placeholder="m@example.com"
                 value={email}
@@ -99,17 +103,39 @@ export function Login() {
                   Forgot?
                 </Link>
               </div>
-              <Input 
-                id="password" 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="accent-primary"
+                />
+                <span>Remember me</span>
+              </label>
+            </div>
+
+            <Button type="submit" className="w-full" disabled={loading} aria-busy={loading}>
               {loading ? "Logging in..." : "Login"}
             </Button>
           </form>
