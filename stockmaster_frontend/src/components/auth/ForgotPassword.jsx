@@ -192,6 +192,7 @@ export function ForgotPassword() {
 )}
 
 
+
           {step === 3 && (
             <form onSubmit={handleResetPassword} className="flex flex-col gap-6">
               {error && (
