@@ -15,15 +15,18 @@ import {
   Warehouse,
 } from "lucide-react";
 
+import { Users as UsersIcon } from "lucide-react";
+
 const menuItems = {
   admin: [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard/admin" },
     { icon: Package, label: "Products", path: "/products" },
+    { icon: Warehouse, label: "Warehouses", path: "/warehouses" },
+    { icon: UsersIcon, label: "Users", path: "/admin/users" },
     { icon: Receipt, label: "Receipts", path: "/receipts" },
     { icon: Truck, label: "Deliveries", path: "/deliveries" },
     { icon: Move, label: "Transfers", path: "/transfers" },
     { icon: FileText, label: "Adjustments", path: "/adjustments" },
-    { icon: Warehouse, label: "Warehouses", path: "/warehouses" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ],
   manager: [
