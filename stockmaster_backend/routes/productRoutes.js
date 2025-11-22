@@ -5,16 +5,16 @@ import {
   getAllProducts,
   getStockByLocation,
 } from "../controllers/productController.js";
-import { authenticate, isAdmin, isAdminOrStaff } from "../middleware/authMiddleware.js";
+import { authenticate, isAdmin, isAdminOrManager, isAdminOrStaff } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// GET routes - accessible by admin and staff
+// GET routes - accessible by all authenticated users
 router.get("/", authenticate, isAdminOrStaff, getAllProducts);
 router.get("/:id/stock", authenticate, isAdminOrStaff, getStockByLocation);
 
-// POST, PUT routes - admin only
-router.post("/", authenticate, isAdmin, createProduct);
-router.put("/:id", authenticate, isAdmin, updateProduct);
+// POST, PUT routes - admin and manager only
+router.post("/", authenticate, isAdminOrManager, createProduct);
+router.put("/:id", authenticate, isAdminOrManager, updateProduct);
 
 export default router;

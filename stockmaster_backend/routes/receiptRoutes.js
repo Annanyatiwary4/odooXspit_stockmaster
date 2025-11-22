@@ -3,13 +3,13 @@ import {
   createReceipt,
   validateReceipt,
 } from "../controllers/receiptController.js";
-import { authenticate, isAdminOrStaff } from "../middleware/authMiddleware.js";
+import { authenticate, isAdminOrManager } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// All receipt routes require authentication (admin or staff)
+// All receipt routes require authentication (admin or manager)
 router.use(authenticate);
-router.use(isAdminOrStaff);
+router.use(isAdminOrManager);
 
 // POST /api/receipts - Create receipt
 router.post("/", createReceipt);

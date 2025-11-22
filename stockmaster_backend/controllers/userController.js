@@ -13,8 +13,8 @@ export const createUser = async (req, res) => {
     }
 
     // Validate role
-    if (role && !["admin", "staff"].includes(role)) {
-      return res.status(400).json({ message: "Invalid role. Must be 'admin' or 'staff'" });
+    if (role && !["admin", "manager", "staff"].includes(role)) {
+      return res.status(400).json({ message: "Invalid role. Must be 'admin', 'manager', or 'staff'" });
     }
 
     // Hash password
@@ -71,8 +71,8 @@ export const updateUser = async (req, res) => {
     }
 
     // Validate role if being updated
-    if (updates.role && !["admin", "staff"].includes(updates.role)) {
-      return res.status(400).json({ message: "Invalid role. Must be 'admin' or 'staff'" });
+    if (updates.role && !["admin", "manager", "staff"].includes(updates.role)) {
+      return res.status(400).json({ message: "Invalid role. Must be 'admin', 'manager', or 'staff'" });
     }
 
     const user = await User.findByIdAndUpdate(id, updates, {

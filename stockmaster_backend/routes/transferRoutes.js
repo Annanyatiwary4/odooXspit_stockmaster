@@ -3,13 +3,13 @@ import {
   createTransfer,
   validateTransfer,
 } from "../controllers/transferController.js";
-import { authenticate, isAdminOrStaff } from "../middleware/authMiddleware.js";
+import { authenticate, isAdminOrManager } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// All transfer routes require authentication (admin or staff)
+// All transfer routes require authentication (admin or manager)
 router.use(authenticate);
-router.use(isAdminOrStaff);
+router.use(isAdminOrManager);
 
 // POST /api/transfers - Create transfer
 router.post("/", createTransfer);

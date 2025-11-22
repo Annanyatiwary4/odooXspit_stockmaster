@@ -3,7 +3,16 @@ import mongoose from "mongoose";
 const receiptSchema = new mongoose.Schema({
     supplier: String,
     location: String,
-    status: { type: String, default: "Draft" },
+    status: { 
+        type: String, 
+        enum: ["Draft", "Confirmed", "Validated", "Cancelled"],
+        default: "Draft" 
+    },
+    receiptNumber: String,
+    notes: String,
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    validatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    validatedAt: Date,
 
     items: [
         {

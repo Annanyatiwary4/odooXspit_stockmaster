@@ -14,8 +14,8 @@ export const signup = async (req, res) => {
     }
 
     // Validate role
-    if (role && !["admin", "staff"].includes(role)) {
-      return res.status(400).json({ message: "Invalid role. Must be 'admin' or 'staff'" });
+    if (role && !["admin", "manager", "staff"].includes(role)) {
+      return res.status(400).json({ message: "Invalid role. Must be 'admin', 'manager', or 'staff'" });
     }
 
     // Hash password

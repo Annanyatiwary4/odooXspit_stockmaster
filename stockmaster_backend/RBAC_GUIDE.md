@@ -2,18 +2,34 @@
 
 ## 🔐 User Roles
 
-### 1. **Admin**
-- Full system access
-- Can manage users, warehouses, products
-- Can create, update, and delete all resources
+### 1. **Admin** 👑
+- **Full system access and management capabilities**
+- Controls everything in the system
+- Can manage all warehouses and locations
+- User management and role assignment
+- System settings and configuration
+- View all operations across all warehouses
 - Access to all reports and analytics
 
-### 2. **Staff**
-- View products and inventory
-- Create and validate receipts, deliveries, transfers
-- Create stock adjustments
-- View dashboard and reports
-- Cannot manage users or warehouses
+### 2. **Inventory Manager** 📊
+- **Handles Inventory Operations**
+- Manages incoming & outgoing stock
+- Create and validate receipts
+- Create and validate delivery orders
+- Schedule and execute internal transfers
+- Perform inventory adjustments
+- View inventory reports and alerts
+- Manage products and categories
+
+### 3. **Warehouse Staff / Operator** 🧑‍🔧
+- **Handles Day-to-Day Operations**
+- View available stock
+- Process receipts (receiving goods)
+- Process delivery orders (picking, packing)
+- Execute internal transfers
+- Perform stock counting
+- Create inventory adjustments
+- Track assigned tasks
 
 ---
 

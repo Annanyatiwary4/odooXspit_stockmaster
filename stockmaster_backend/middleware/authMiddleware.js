@@ -18,6 +18,10 @@ export const authenticate = async (req, res, next) => {
       return res.status(401).json({ message: "User not found" });
     }
 
+    if (!user.isActive) {
+      return res.status(403).json({ message: "User account is deactivated" });
+    }
+
     req.user = user;
     next();
   } catch (error) {
@@ -35,11 +39,31 @@ export const isAdmin = (req, res, next) => {
   next();
 };
 
-// Check if user is admin or staff
-export const isAdminOrStaff = (req, res, next) => {
-  if (req.user.role !== "admin" && req.user.role !== "staff") {
+// Check if user is manager
+export const isManager = (req, res, next) => {
+  if (req.user.role !== "manager") {
     return res.status(403).json({ 
-      message: "Access denied. Admin or staff privileges required." 
+      message: "Access denied. Manager privileges required." 
+    });
+  }
+  next();
+};
+
+// Check if user is admin or manager
+export const isAdminOrManager = (req, res, next) => {
+  if (req.user.role !== "admin" && req.user.role !== "manager") {
+    return res.status(403).json({ 
+      message: "Access denied. Admin or Manager privileges required." 
+    });
+  }
+  next();
+};
+
+// Check if user is admin, manager, or staff (all authenticated users)
+export const isAdminOrStaff = (req, res, next) => {
+  if (!["admin", "manager", "staff"].includes(req.user.role)) {
+    return res.status(403).json({ 
+      message: "Access denied." 
     });
   }
   next();
