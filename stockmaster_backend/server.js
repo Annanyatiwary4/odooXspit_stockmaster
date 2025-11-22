@@ -5,7 +5,9 @@ import connectDB from "./config/db.js";
 
 // Import routes
 import authRoutes from "./routes/authRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
+import warehouseRoutes from "./routes/warehouseRoutes.js";
 import receiptRoutes from "./routes/receiptRoutes.js";
 import deliveryRoutes from "./routes/deliveryRoutes.js";
 import transferRoutes from "./routes/transferRoutes.js";
@@ -29,7 +31,9 @@ app.get("/", (req, res) => {
 
 // API Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/warehouses", warehouseRoutes);
 app.use("/api/receipts", receiptRoutes);
 app.use("/api/delivery", deliveryRoutes);
 app.use("/api/transfers", transferRoutes);
@@ -43,4 +47,4 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port http://localhost:${PORT}`));

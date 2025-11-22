@@ -13,6 +13,11 @@ export const signup = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // Validate role
+    if (role && !["admin", "staff"].includes(role)) {
+      return res.status(400).json({ message: "Invalid role. Must be 'admin' or 'staff'" });
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -21,7 +26,7 @@ export const signup = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: role || "manager",
+      role: role || "staff",
     });
 
     res.status(201).json({

@@ -3,8 +3,13 @@ import {
   createDelivery,
   validateDelivery,
 } from "../controllers/deliveryController.js";
+import { authenticate, isAdminOrStaff } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
+
+// All delivery routes require authentication (admin or staff)
+router.use(authenticate);
+router.use(isAdminOrStaff);
 
 // POST /api/delivery - Create delivery
 router.post("/", createDelivery);
