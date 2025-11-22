@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
@@ -13,7 +13,9 @@ import {
   SidebarMenuButton,
   SidebarProvider,
 } from "@/components/ui/sidebar";
-import { ThemeToggle } from "@/components/ThemeToggle";
+// ThemeToggle intentionally omitted from footer per design
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { User2, ChevronUp } from "lucide-react";
 import {
   LayoutDashboard,
   Package,
@@ -23,7 +25,6 @@ import {
   FileText,
   Settings,
   User,
-  LogOut,
   Warehouse,
 } from "lucide-react";
 
@@ -58,6 +59,12 @@ const items = {
 
 export function AppSidebarContent() {
   const { user, logout, isAdmin, isManager } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   const getMenuItems = () => {
     if (isAdmin()) return items.admin;
@@ -95,12 +102,38 @@ export function AppSidebarContent() {
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="p-4 space-y-2">
-          <ThemeToggle />
-          <div className="text-sm">
-            <div className="font-medium">{user?.name}</div>
-            <div className="capitalize text-muted-foreground text-xs">{user?.role}</div>
-          </div>
+        <div className="p-4">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <div className="flex items-center justify-between">
+                <div className="text-sm">
+                  <div className="flex items-center gap-2">
+                    <User2 />
+                    <div className="font-medium">{user?.name}</div>
+                  </div>
+                  <div className="capitalize text-muted-foreground text-xs">{user?.role}</div>
+                </div>
+                <div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SidebarMenuButton>
+                        
+                        <ChevronUp className="ml-2" />
+                      </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="top" className="w-[--radix-popper-anchor-width]">
+                      <DropdownMenuItem>
+                        <Link to="/profile" className="w-full block">My Profile</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { handleLogout(); }}>
+                        <span>Sign out</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </SidebarMenuItem>
+          </SidebarMenu>
         </div>
       </SidebarFooter>
     </Sidebar>
