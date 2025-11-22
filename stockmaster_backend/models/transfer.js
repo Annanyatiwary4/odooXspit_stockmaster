@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const transferSchema = new mongoose.Schema({
     from: String, // warehouse or rack
@@ -13,4 +13,4 @@ const transferSchema = new mongoose.Schema({
     ]
 }, { timestamps: true });
 
-module.exports = mongoose.model("Transfer", transferSchema);
+export default mongoose.model("Transfer", transferSchema);

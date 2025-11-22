@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema({
     name: String,
@@ -16,4 +16,4 @@ const productSchema = new mongoose.Schema({
     reorderLevel: { type: Number, default: 5 }
 }, { timestamps: true });
 
-module.exports = mongoose.model("Product", productSchema);
+export default mongoose.model("Product", productSchema);
