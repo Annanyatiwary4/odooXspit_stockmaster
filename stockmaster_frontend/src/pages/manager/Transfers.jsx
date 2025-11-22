@@ -26,7 +26,7 @@ export function Transfers() {
   const [editingTransfer, setEditingTransfer] = useState(null);
   const [sourceWarehouse, setSourceWarehouse] = useState(null);
   const [destWarehouse, setDestWarehouse] = useState(null);
-  const { isManager, isAdmin } = useAuth();
+  const { isManager, isAdmin, isWarehouse, user } = useAuth();
   const [formData, setFormData] = useState({
     sourceWarehouseId: "",
     sourceLocationId: "",
@@ -49,6 +49,19 @@ export function Transfers() {
     loadTransfers();
     loadWarehouses();
     loadProducts();
+    // Auto-set warehouses for warehouse staff (both source and destination must be assigned warehouse)
+    if (isWarehouse() && user?.assignedWarehouse) {
+      const assignedWarehouseId = user.assignedWarehouse._id || user.assignedWarehouse;
+      if (!formData.sourceWarehouseId) {
+        setFormData(prev => ({ 
+          ...prev, 
+          sourceWarehouseId: assignedWarehouseId,
+          destinationWarehouseId: assignedWarehouseId
+        }));
+        handleSourceWarehouseChange(assignedWarehouseId);
+        handleDestWarehouseChange(assignedWarehouseId);
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, statusFilter]);
 
@@ -152,6 +165,16 @@ export function Transfers() {
         formData.items.length === 0) {
       alert("Please fill in source, destination, and add at least one item");
       return;
+    }
+
+    // For warehouse staff, ensure both warehouses are the assigned warehouse
+    if (isWarehouse() && user?.assignedWarehouse) {
+      const assignedWarehouseId = user.assignedWarehouse._id || user.assignedWarehouse;
+      if (formData.sourceWarehouseId !== assignedWarehouseId.toString() || 
+          formData.destinationWarehouseId !== assignedWarehouseId.toString()) {
+        alert("As warehouse staff, you can only create transfers within your assigned warehouse");
+        return;
+      }
     }
 
     try {
@@ -268,7 +291,7 @@ export function Transfers() {
               Move stock between locations
             </p>
           </div>
-          {(isManager() || isAdmin()) && (
+          {(isManager() || isAdmin() || isWarehouse()) && (
             <Button onClick={() => { setShowForm(true); resetForm(); }}>
               <Plus className="size-4 mr-2" />
               New Transfer
@@ -313,7 +336,7 @@ export function Transfers() {
         </Card>
 
         {/* Transfer Form */}
-        {showForm && (isManager() || isAdmin()) && (
+        {showForm && (isManager() || isAdmin() || isWarehouse()) && (
           <Card>
             <CardHeader>
               <CardTitle>{editingTransfer ? "Edit Transfer" : "New Transfer"}</CardTitle>
@@ -323,18 +346,26 @@ export function Transfers() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>Source Warehouse *</Label>
-                    <Select value={formData.sourceWarehouseId} onValueChange={handleSourceWarehouseChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select source warehouse" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {warehouses.map((wh) => (
-                          <SelectItem key={wh._id} value={wh._id}>
-                            {wh.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {isWarehouse() && user?.assignedWarehouse ? (
+                      <Input 
+                        value={user.assignedWarehouse?.name || warehouses.find(w => w._id === formData.sourceWarehouseId)?.name || 'Assigned Warehouse'} 
+                        disabled 
+                        className="bg-muted"
+                      />
+                    ) : (
+                      <Select value={formData.sourceWarehouseId} onValueChange={handleSourceWarehouseChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select source warehouse" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {warehouses.map((wh) => (
+                            <SelectItem key={wh._id} value={wh._id}>
+                              {wh.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   <div>
                     <Label>Source Location *</Label>
@@ -353,18 +384,26 @@ export function Transfers() {
                   </div>
                   <div>
                     <Label>Destination Warehouse *</Label>
-                    <Select value={formData.destinationWarehouseId} onValueChange={handleDestWarehouseChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select destination warehouse" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {warehouses.map((wh) => (
-                          <SelectItem key={wh._id} value={wh._id}>
-                            {wh.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {isWarehouse() && user?.assignedWarehouse ? (
+                      <Input 
+                        value={user.assignedWarehouse?.name || warehouses.find(w => w._id === formData.destinationWarehouseId)?.name || 'Assigned Warehouse'} 
+                        disabled 
+                        className="bg-muted"
+                      />
+                    ) : (
+                      <Select value={formData.destinationWarehouseId} onValueChange={handleDestWarehouseChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select destination warehouse" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {warehouses.map((wh) => (
+                            <SelectItem key={wh._id} value={wh._id}>
+                              {wh.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   <div>
                     <Label>Destination Location *</Label>

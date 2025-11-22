@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Edit, Trash2, CheckCircle, X, Truck, Package, Box } from "lucide-react";
+import { Plus, Search, Edit, Trash2, CheckCircle, X, Truck, Package, Box, Printer } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { deliveriesAPI, warehousesAPI, productsAPI } from "@/lib/api";
 
@@ -26,7 +26,7 @@ export function Deliveries() {
   const [showForm, setShowForm] = useState(false);
   const [editingDelivery, setEditingDelivery] = useState(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
-  const { isManager, isAdmin } = useAuth();
+  const { isManager, isAdmin, isWarehouse, user } = useAuth();
   const [formData, setFormData] = useState({
     customer: "",
     customerEmail: "",
@@ -52,6 +52,12 @@ export function Deliveries() {
     loadDeliveries();
     loadWarehouses();
     loadProducts();
+    // Auto-set warehouse for warehouse staff
+    if (isWarehouse() && user?.assignedWarehouse && !formData.warehouseId) {
+      const assignedWarehouseId = user.assignedWarehouse._id || user.assignedWarehouse;
+      setFormData(prev => ({ ...prev, warehouseId: assignedWarehouseId }));
+      handleWarehouseChange(assignedWarehouseId);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, statusFilter, warehouseFilter]);
 
@@ -241,6 +247,112 @@ export function Deliveries() {
     }
   };
 
+  const handlePrint = async (delivery) => {
+    // Load warehouse details if needed
+    let warehouseDetails = delivery.warehouseId;
+    if (delivery.warehouseId && !delivery.warehouseId.locations) {
+      try {
+        const wh = await warehousesAPI.getById(delivery.warehouseId._id || delivery.warehouseId);
+        warehouseDetails = wh.data;
+      } catch (error) {
+        console.error("Error loading warehouse:", error);
+      }
+    }
+
+    const printWindow = window.open('', '_blank');
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Delivery ${delivery.deliveryNumber}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .header h1 { margin: 0; }
+            .details { margin-bottom: 20px; }
+            .details table { width: 100%; border-collapse: collapse; }
+            .details td { padding: 8px; border-bottom: 1px solid #ddd; }
+            .details td:first-child { font-weight: bold; width: 150px; }
+            .items { margin-top: 30px; }
+            .items table { width: 100%; border-collapse: collapse; }
+            .items th, .items td { padding: 10px; text-align: left; border: 1px solid #ddd; }
+            .items th { background-color: #f5f5f5; }
+            .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+            @media print {
+              body { padding: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>DELIVERY ORDER</h1>
+            <p>StockMaster Inventory System</p>
+          </div>
+          <div class="details">
+            <table>
+              <tr><td>Delivery Number:</td><td>${delivery.deliveryNumber}</td></tr>
+              <tr><td>Date:</td><td>${new Date(delivery.deliveryDate).toLocaleDateString()}</td></tr>
+              <tr><td>Customer:</td><td>${delivery.customer}</td></tr>
+              ${delivery.customerEmail ? `<tr><td>Customer Email:</td><td>${delivery.customerEmail}</td></tr>` : ''}
+              ${delivery.customerPhone ? `<tr><td>Customer Phone:</td><td>${delivery.customerPhone}</td></tr>` : ''}
+              ${delivery.deliveryAddress ? `<tr><td>Delivery Address:</td><td>${delivery.deliveryAddress}</td></tr>` : ''}
+              <tr><td>Warehouse:</td><td>${warehouseDetails?.name || delivery.warehouseId?.name || delivery.warehouseId}</td></tr>
+              ${delivery.referenceNumber ? `<tr><td>Reference:</td><td>${delivery.referenceNumber}</td></tr>` : ''}
+              <tr><td>Status:</td><td>${delivery.status.toUpperCase()}</td></tr>
+            </table>
+          </div>
+          <div class="items">
+            <h3>Items to Deliver</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th>Quantity</th>
+                  <th>Picked</th>
+                  <th>Packed</th>
+                  <th>UOM</th>
+                  <th>Location</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${delivery.items.map((item, index) => {
+                  const product = item.productId?.name || item.productId;
+                  const sku = item.productId?.sku || '';
+                  const uom = item.productId?.uom || '';
+                  const location = warehouseDetails?.locations?.find(l => l._id === item.locationId)?.name || item.locationId;
+                  return `
+                    <tr>
+                      <td>${product}</td>
+                      <td>${sku}</td>
+                      <td>${item.quantity}</td>
+                      <td>${item.pickedQuantity || 0}</td>
+                      <td>${item.packedQuantity || 0}</td>
+                      <td>${uom}</td>
+                      <td>${location}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+          ${delivery.notes ? `<div class="notes"><p><strong>Notes:</strong> ${delivery.notes}</p></div>` : ''}
+          <div class="footer">
+            <p>Generated on ${new Date().toLocaleString()}</p>
+            ${delivery.validatedBy ? `<p>Validated by: ${delivery.validatedBy?.name || delivery.validatedBy}</p>` : ''}
+          </div>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
   const resetForm = () => {
     setFormData({
       customer: "",
@@ -330,22 +442,34 @@ export function Deliveries() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Warehouse</Label>
-                <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Warehouses</SelectItem>
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh._id} value={wh._id}>
-                        {wh.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {(isAdmin() || isManager()) && (
+                <div>
+                  <Label>Warehouse</Label>
+                  <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Warehouses</SelectItem>
+                      {warehouses.map((wh) => (
+                        <SelectItem key={wh._id} value={wh._id}>
+                          {wh.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {isWarehouse() && user?.assignedWarehouse && (
+                <div>
+                  <Label>Warehouse</Label>
+                  <Input 
+                    value={user.assignedWarehouse?.name || 'Assigned Warehouse'} 
+                    disabled 
+                    className="bg-muted"
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -369,18 +493,26 @@ export function Deliveries() {
                   </div>
                   <div>
                     <Label>Warehouse *</Label>
-                    <Select value={formData.warehouseId} onValueChange={handleWarehouseChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select warehouse" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {warehouses.map((wh) => (
-                          <SelectItem key={wh._id} value={wh._id}>
-                            {wh.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {isWarehouse() && user?.assignedWarehouse ? (
+                      <Input 
+                        value={user.assignedWarehouse?.name || warehouses.find(w => w._id === formData.warehouseId)?.name || 'Assigned Warehouse'} 
+                        disabled 
+                        className="bg-muted"
+                      />
+                    ) : (
+                      <Select value={formData.warehouseId} onValueChange={handleWarehouseChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select warehouse" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {warehouses.map((wh) => (
+                            <SelectItem key={wh._id} value={wh._id}>
+                              {wh.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   <div>
                     <Label>Customer Email</Label>
@@ -574,6 +706,14 @@ export function Deliveries() {
                         )}
                       </div>
                       <div className="flex gap-2 items-center flex-wrap">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePrint(delivery)}
+                        >
+                          <Printer className="size-4 mr-2" />
+                          Print
+                        </Button>
                         {delivery.status !== 'done' && delivery.status !== 'canceled' && (
                           <>
                             {(isManager() || isAdmin()) && (

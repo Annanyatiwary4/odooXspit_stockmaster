@@ -12,6 +12,7 @@ import receiptRoutes from "./routes/receiptRoutes.js";
 import deliveryRoutes from "./routes/deliveryRoutes.js";
 import transferRoutes from "./routes/transferRoutes.js";
 import adjustmentRoutes from "./routes/adjustmentRoutes.js";
+import ledgerRoutes from "./routes/ledgerRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -41,6 +42,7 @@ app.use("/api/receipts", receiptRoutes);
 app.use("/api/deliveries", deliveryRoutes);
 app.use("/api/transfers", transferRoutes);
 app.use("/api/adjustments", adjustmentRoutes);
+app.use("/api/ledger", ledgerRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -27,7 +27,7 @@ export function Adjustments() {
   const [editingAdjustment, setEditingAdjustment] = useState(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const { isManager, isAdmin } = useAuth();
+  const { isManager, isAdmin, isWarehouse, user } = useAuth();
   const [formData, setFormData] = useState({
     productId: "",
     warehouseId: "",
@@ -44,6 +44,12 @@ export function Adjustments() {
     loadAdjustments();
     loadWarehouses();
     loadProducts();
+    // Auto-set warehouse for warehouse staff
+    if (isWarehouse() && user?.assignedWarehouse && !formData.warehouseId) {
+      const assignedWarehouseId = user.assignedWarehouse._id || user.assignedWarehouse;
+      setFormData(prev => ({ ...prev, warehouseId: assignedWarehouseId }));
+      handleWarehouseChange(assignedWarehouseId);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, statusFilter, warehouseFilter]);
 
@@ -273,22 +279,34 @@ export function Adjustments() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Warehouse</Label>
-                <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Warehouses</SelectItem>
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh._id} value={wh._id}>
-                        {wh.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {(isAdmin() || isManager()) && (
+                <div>
+                  <Label>Warehouse</Label>
+                  <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Warehouses</SelectItem>
+                      {warehouses.map((wh) => (
+                        <SelectItem key={wh._id} value={wh._id}>
+                          {wh.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {isWarehouse() && user?.assignedWarehouse && (
+                <div>
+                  <Label>Warehouse</Label>
+                  <Input 
+                    value={user.assignedWarehouse?.name || 'Assigned Warehouse'} 
+                    disabled 
+                    className="bg-muted"
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -319,18 +337,26 @@ export function Adjustments() {
                   </div>
                   <div>
                     <Label>Warehouse *</Label>
-                    <Select value={formData.warehouseId} onValueChange={handleWarehouseChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select warehouse" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {warehouses.map((wh) => (
-                          <SelectItem key={wh._id} value={wh._id}>
-                            {wh.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {isWarehouse() && user?.assignedWarehouse ? (
+                      <Input 
+                        value={user.assignedWarehouse?.name || warehouses.find(w => w._id === formData.warehouseId)?.name || 'Assigned Warehouse'} 
+                        disabled 
+                        className="bg-muted"
+                      />
+                    ) : (
+                      <Select value={formData.warehouseId} onValueChange={handleWarehouseChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select warehouse" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {warehouses.map((wh) => (
+                            <SelectItem key={wh._id} value={wh._id}>
+                              {wh.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   <div>
                     <Label>Location *</Label>

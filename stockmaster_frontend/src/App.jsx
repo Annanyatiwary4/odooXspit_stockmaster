@@ -7,7 +7,7 @@ import { Signup } from "./components/auth/signup";
 import { ForgotPassword } from "./components/auth/ForgotPassword";
 import { AdminDashboard } from "./pages/dashboards/AdminDashboard";
 import { ManagerDashboard } from "./pages/dashboards/ManagerDashboard";
-import { WarehouseDashboard } from "./pages/dashboards/WarehouseDashboard";
+
 import { Products } from "./pages/admin/Products";
 import { Warehouses } from "./pages/admin/Warehouses";
 import { Users } from "./pages/admin/Users";
@@ -17,8 +17,11 @@ import { Receipts } from "./pages/manager/Receipts";
 import { Deliveries } from "./pages/manager/Deliveries";
 import { Transfers } from "./pages/manager/Transfers";
 import { Adjustments } from "./pages/manager/Adjustments";
+import { StockLedger } from "./pages/manager/StockLedger";
+import { ViewStock } from "./pages/warehouse/ViewStock";
 import { Profile } from "./pages/Profile";
 import { Unauthorized } from "./pages/Unauthorized";
+import { WarehouseDashboard } from './pages/dashboards/WarehouseDashboard';
 
 function App() {
   return (
@@ -132,6 +135,22 @@ function App() {
           element={
             <ProtectedRoute requiredRoles={['admin', 'manager', 'warehouse']}>
               <Adjustments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ledger"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager', 'warehouse']}>
+              <StockLedger />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/stock"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager', 'warehouse']}>
+              <ViewStock />
             </ProtectedRoute>
           }
         />

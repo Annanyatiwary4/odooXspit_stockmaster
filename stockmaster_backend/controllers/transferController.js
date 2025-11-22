@@ -1,6 +1,7 @@
 import Transfer from "../models/transfer.js";
 import Product from "../models/product.js";
 import Warehouse from "../models/warehouse.js";
+import { logStockMovement } from "../utils/stockLedger.js";
 
 // Helper function to generate transfer number
 const generateTransferNumber = async () => {
@@ -46,9 +47,17 @@ export const getTransfers = async (req, res) => {
     
     const query = {};
     
+    // For warehouse staff, filter by assigned warehouse (both source and destination must be assigned warehouse)
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      query.sourceWarehouseId = assignedWarehouseId;
+      query.destinationWarehouseId = assignedWarehouseId;
+    } else {
+      if (sourceWarehouseId) query.sourceWarehouseId = sourceWarehouseId;
+      if (destinationWarehouseId) query.destinationWarehouseId = destinationWarehouseId;
+    }
+    
     if (status) query.status = status;
-    if (sourceWarehouseId) query.sourceWarehouseId = sourceWarehouseId;
-    if (destinationWarehouseId) query.destinationWarehouseId = destinationWarehouseId;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
@@ -102,6 +111,20 @@ export const getTransfer = async (req, res) => {
       });
     }
 
+    // For warehouse staff, ensure they can only view transfers within their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const sourceWarehouseId = transfer.sourceWarehouseId._id || transfer.sourceWarehouseId;
+      const destWarehouseId = transfer.destinationWarehouseId._id || transfer.destinationWarehouseId;
+      if (assignedWarehouseId.toString() !== sourceWarehouseId.toString() || 
+          assignedWarehouseId.toString() !== destWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only view transfers within your assigned warehouse",
+        });
+      }
+    }
+
     res.status(200).json({
       success: true,
       data: transfer,
@@ -117,7 +140,7 @@ export const getTransfer = async (req, res) => {
 
 // @desc    Create transfer
 // @route   POST /api/transfers
-// @access  Private (Admin, Manager)
+// @access  Private (Admin, Manager, Warehouse)
 export const createTransfer = async (req, res) => {
   try {
     const {
@@ -137,6 +160,25 @@ export const createTransfer = async (req, res) => {
         success: false,
         message: "Please provide source, destination, and items",
       });
+    }
+
+    // For warehouse staff, enforce assigned warehouse for both source and destination (must be same warehouse)
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      if (assignedWarehouseId.toString() !== sourceWarehouseId.toString() || 
+          assignedWarehouseId.toString() !== destinationWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only create transfers within your assigned warehouse",
+        });
+      }
+      // Ensure source and destination are the same warehouse for internal transfers
+      if (sourceWarehouseId.toString() !== destinationWarehouseId.toString()) {
+        return res.status(400).json({
+          success: false,
+          message: "As warehouse staff, you can only transfer within your assigned warehouse",
+        });
+      }
     }
 
     // Verify warehouses exist
@@ -242,6 +284,20 @@ export const updateTransfer = async (req, res) => {
       });
     }
 
+    // For warehouse staff, ensure they can only update transfers within their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const sourceWarehouseId = transfer.sourceWarehouseId._id || transfer.sourceWarehouseId;
+      const destWarehouseId = transfer.destinationWarehouseId._id || transfer.destinationWarehouseId;
+      if (assignedWarehouseId.toString() !== sourceWarehouseId.toString() || 
+          assignedWarehouseId.toString() !== destWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only update transfers within your assigned warehouse",
+        });
+      }
+    }
+
     // Cannot update executed transfers
     if (transfer.status === 'done') {
       return res.status(400).json({
@@ -264,6 +320,16 @@ export const updateTransfer = async (req, res) => {
     } = req.body;
 
     if (sourceWarehouseId) {
+      // For warehouse staff, enforce assigned warehouse
+      if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+        const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+        if (assignedWarehouseId.toString() !== sourceWarehouseId.toString()) {
+          return res.status(403).json({
+            success: false,
+            message: "You can only update transfers within your assigned warehouse",
+          });
+        }
+      }
       const warehouse = await Warehouse.findById(sourceWarehouseId);
       if (!warehouse) {
         return res.status(404).json({
@@ -275,6 +341,23 @@ export const updateTransfer = async (req, res) => {
     }
     if (sourceLocationId) transfer.sourceLocationId = sourceLocationId;
     if (destinationWarehouseId) {
+      // For warehouse staff, enforce assigned warehouse and ensure it matches source
+      if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+        const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+        if (assignedWarehouseId.toString() !== destinationWarehouseId.toString()) {
+          return res.status(403).json({
+            success: false,
+            message: "You can only update transfers within your assigned warehouse",
+          });
+        }
+        // Ensure source and destination are the same warehouse for warehouse staff
+        if (sourceWarehouseId && sourceWarehouseId.toString() !== destinationWarehouseId.toString()) {
+          return res.status(400).json({
+            success: false,
+            message: "As warehouse staff, you can only transfer within your assigned warehouse",
+          });
+        }
+      }
       const warehouse = await Warehouse.findById(destinationWarehouseId);
       if (!warehouse) {
         return res.status(404).json({
@@ -343,6 +426,20 @@ export const executeTransfer = async (req, res) => {
       });
     }
 
+    // For warehouse staff, ensure they can only execute transfers within their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const sourceWarehouseId = transfer.sourceWarehouseId._id || transfer.sourceWarehouseId;
+      const destWarehouseId = transfer.destinationWarehouseId._id || transfer.destinationWarehouseId;
+      if (assignedWarehouseId.toString() !== sourceWarehouseId.toString() || 
+          assignedWarehouseId.toString() !== destWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only execute transfers within your assigned warehouse",
+        });
+      }
+    }
+
     if (transfer.status === 'done') {
       return res.status(400).json({
         success: false,
@@ -363,6 +460,24 @@ export const executeTransfer = async (req, res) => {
       await updateProductStock(item.productId, transfer.sourceLocationId, item.quantity, 'subtract');
       // Add to destination location
       await updateProductStock(item.productId, transfer.destinationLocationId, item.quantity, 'add');
+      
+      // Log stock movement (logStockMovement handles both source and destination entries)
+      await logStockMovement({
+        movementType: 'transfer',
+        documentId: transfer._id,
+        documentNumber: transfer.transferNumber,
+        productId: item.productId,
+        warehouseId: transfer.sourceWarehouseId,
+        locationId: transfer.sourceLocationId,
+        quantity: item.quantity,
+        sourceWarehouseId: transfer.sourceWarehouseId,
+        sourceLocationId: transfer.sourceLocationId,
+        destinationWarehouseId: transfer.destinationWarehouseId,
+        destinationLocationId: transfer.destinationLocationId,
+        reference: transfer.reason || "",
+        notes: transfer.notes || "",
+        performedBy: req.user._id
+      });
     }
 
     // Update transfer status
@@ -404,6 +519,20 @@ export const cancelTransfer = async (req, res) => {
         success: false,
         message: "Transfer not found",
       });
+    }
+
+    // For warehouse staff, ensure they can only cancel transfers within their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const sourceWarehouseId = transfer.sourceWarehouseId._id || transfer.sourceWarehouseId;
+      const destWarehouseId = transfer.destinationWarehouseId._id || transfer.destinationWarehouseId;
+      if (assignedWarehouseId.toString() !== sourceWarehouseId.toString() || 
+          assignedWarehouseId.toString() !== destWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only cancel transfers within your assigned warehouse",
+        });
+      }
     }
 
     if (transfer.status === 'done') {
