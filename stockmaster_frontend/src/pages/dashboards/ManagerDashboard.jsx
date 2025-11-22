@@ -17,6 +17,11 @@ export function ManagerDashboard() {
   });
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [pendingOperations, setPendingOperations] = useState([]);
+  const [operationsSummary, setOperationsSummary] = useState({
+    today: { receipts: 0, deliveries: 0, transfers: 0, adjustments: 0 },
+    thisWeek: { receipts: 0, deliveries: 0, transfers: 0, adjustments: 0 },
+    thisMonth: { receipts: 0, deliveries: 0, transfers: 0, adjustments: 0 },
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -100,6 +105,90 @@ export function ManagerDashboard() {
         });
       }
       setPendingOperations(operations.slice(0, 5));
+
+      // Calculate operations summary
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const weekAgo = new Date(today);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      const monthAgo = new Date(today);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+
+      // Get all operations for summary
+      const [allReceipts, allDeliveries, allTransfers, allAdjustments] = await Promise.all([
+        receiptsAPI.getAll({ limit: 1000 }),
+        deliveriesAPI.getAll({ limit: 1000 }),
+        transfersAPI.getAll({ limit: 1000 }),
+        adjustmentsAPI.getAll({ limit: 1000 }),
+      ]);
+
+      const receipts = allReceipts.data || [];
+      const deliveries = allDeliveries.data || [];
+      const transfers = allTransfers.data || [];
+      const adjustments = allAdjustments.data || [];
+
+      const todayOps = {
+        receipts: receipts.filter(r => {
+          const date = new Date(r.createdAt || r.receiptDate);
+          return date >= today;
+        }).length,
+        deliveries: deliveries.filter(d => {
+          const date = new Date(d.createdAt || d.deliveryDate);
+          return date >= today;
+        }).length,
+        transfers: transfers.filter(t => {
+          const date = new Date(t.createdAt || t.transferDate);
+          return date >= today;
+        }).length,
+        adjustments: adjustments.filter(a => {
+          const date = new Date(a.createdAt || a.adjustmentDate);
+          return date >= today;
+        }).length,
+      };
+
+      const weekOps = {
+        receipts: receipts.filter(r => {
+          const date = new Date(r.createdAt || r.receiptDate);
+          return date >= weekAgo;
+        }).length,
+        deliveries: deliveries.filter(d => {
+          const date = new Date(d.createdAt || d.deliveryDate);
+          return date >= weekAgo;
+        }).length,
+        transfers: transfers.filter(t => {
+          const date = new Date(t.createdAt || t.transferDate);
+          return date >= weekAgo;
+        }).length,
+        adjustments: adjustments.filter(a => {
+          const date = new Date(a.createdAt || a.adjustmentDate);
+          return date >= weekAgo;
+        }).length,
+      };
+
+      const monthOps = {
+        receipts: receipts.filter(r => {
+          const date = new Date(r.createdAt || r.receiptDate);
+          return date >= monthAgo;
+        }).length,
+        deliveries: deliveries.filter(d => {
+          const date = new Date(d.createdAt || d.deliveryDate);
+          return date >= monthAgo;
+        }).length,
+        transfers: transfers.filter(t => {
+          const date = new Date(t.createdAt || t.transferDate);
+          return date >= monthAgo;
+        }).length,
+        adjustments: adjustments.filter(a => {
+          const date = new Date(a.createdAt || a.adjustmentDate);
+          return date >= monthAgo;
+        }).length,
+      };
+
+      setOperationsSummary({
+        today: todayOps,
+        thisWeek: weekOps,
+        thisMonth: monthOps,
+      });
 
       setStats({
         totalProducts,
@@ -280,6 +369,101 @@ export function ManagerDashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Operations Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Operations Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <h3 className="font-semibold mb-3 text-sm text-muted-foreground">Today</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Receipts:</span>
+                        <span className="font-medium">{operationsSummary.today.receipts}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Deliveries:</span>
+                        <span className="font-medium">{operationsSummary.today.deliveries}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Transfers:</span>
+                        <span className="font-medium">{operationsSummary.today.transfers}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Adjustments:</span>
+                        <span className="font-medium">{operationsSummary.today.adjustments}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <span className="text-sm font-semibold">Total:</span>
+                        <span className="font-bold">
+                          {operationsSummary.today.receipts + operationsSummary.today.deliveries + 
+                           operationsSummary.today.transfers + operationsSummary.today.adjustments}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-3 text-sm text-muted-foreground">This Week</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Receipts:</span>
+                        <span className="font-medium">{operationsSummary.thisWeek.receipts}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Deliveries:</span>
+                        <span className="font-medium">{operationsSummary.thisWeek.deliveries}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Transfers:</span>
+                        <span className="font-medium">{operationsSummary.thisWeek.transfers}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Adjustments:</span>
+                        <span className="font-medium">{operationsSummary.thisWeek.adjustments}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <span className="text-sm font-semibold">Total:</span>
+                        <span className="font-bold">
+                          {operationsSummary.thisWeek.receipts + operationsSummary.thisWeek.deliveries + 
+                           operationsSummary.thisWeek.transfers + operationsSummary.thisWeek.adjustments}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-3 text-sm text-muted-foreground">This Month</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Receipts:</span>
+                        <span className="font-medium">{operationsSummary.thisMonth.receipts}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Deliveries:</span>
+                        <span className="font-medium">{operationsSummary.thisMonth.deliveries}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Transfers:</span>
+                        <span className="font-medium">{operationsSummary.thisMonth.transfers}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Adjustments:</span>
+                        <span className="font-medium">{operationsSummary.thisMonth.adjustments}</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t">
+                        <span className="text-sm font-semibold">Total:</span>
+                        <span className="font-bold">
+                          {operationsSummary.thisMonth.receipts + operationsSummary.thisMonth.deliveries + 
+                           operationsSummary.thisMonth.transfers + operationsSummary.thisMonth.adjustments}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </>
         )}
       </div>

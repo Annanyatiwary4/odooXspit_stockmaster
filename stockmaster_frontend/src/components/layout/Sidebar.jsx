@@ -13,6 +13,7 @@ import {
   User,
   LogOut,
   Warehouse,
+  History,
 } from "lucide-react";
 
 import { Users as UsersIcon } from "lucide-react";
@@ -28,6 +29,7 @@ const menuItems = {
     { icon: Truck, label: "Deliveries", path: "/deliveries" },
     { icon: Move, label: "Transfers", path: "/transfers" },
     { icon: FileText, label: "Adjustments", path: "/adjustments" },
+    { icon: History, label: "Stock Ledger", path: "/ledger" },
     { icon: Settings, label: "Settings", path: "/settings" },
   ],
   manager: [
@@ -37,12 +39,16 @@ const menuItems = {
     { icon: Truck, label: "Deliveries", path: "/deliveries" },
     { icon: Move, label: "Transfers", path: "/transfers" },
     { icon: FileText, label: "Adjustments", path: "/adjustments" },
+    { icon: History, label: "Stock Ledger", path: "/ledger" },
   ],
   warehouse: [
     { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard/warehouse" },
+    { icon: Package, label: "View Stock", path: "/stock" },
     { icon: Receipt, label: "Receipts", path: "/receipts" },
     { icon: Truck, label: "Deliveries", path: "/deliveries" },
     { icon: Move, label: "Transfers", path: "/transfers" },
+    { icon: FileText, label: "Adjustments", path: "/adjustments" },
+    { icon: History, label: "Stock Ledger", path: "/ledger" },
   ],
 };
 

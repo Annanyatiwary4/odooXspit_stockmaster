@@ -1,6 +1,7 @@
 import Receipt from "../models/receipt.js";
 import Product from "../models/product.js";
 import Warehouse from "../models/warehouse.js";
+import { logStockMovement } from "../utils/stockLedger.js";
 
 // Helper function to generate receipt number
 const generateReceiptNumber = async () => {
@@ -42,8 +43,14 @@ export const getReceipts = async (req, res) => {
     
     const query = {};
     
+    // For warehouse staff, filter by assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      query.warehouseId = req.user.assignedWarehouse;
+    } else if (warehouseId) {
+      query.warehouseId = warehouseId;
+    }
+    
     if (status) query.status = status;
-    if (warehouseId) query.warehouseId = warehouseId;
     if (supplier) query.supplier = { $regex: supplier, $options: 'i' };
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -96,6 +103,18 @@ export const getReceipt = async (req, res) => {
       });
     }
 
+    // For warehouse staff, ensure they can only view receipts from their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const receiptWarehouseId = receipt.warehouseId._id || receipt.warehouseId;
+      if (assignedWarehouseId.toString() !== receiptWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only view receipts from your assigned warehouse",
+        });
+      }
+    }
+
     res.status(200).json({
       success: true,
       data: receipt,
@@ -111,7 +130,7 @@ export const getReceipt = async (req, res) => {
 
 // @desc    Create receipt
 // @route   POST /api/receipts
-// @access  Private (Admin, Manager)
+// @access  Private (Admin, Manager, Warehouse)
 export const createReceipt = async (req, res) => {
   try {
     const {
@@ -131,6 +150,17 @@ export const createReceipt = async (req, res) => {
         success: false,
         message: "Please provide supplier, warehouse, and items",
       });
+    }
+
+    // For warehouse staff, enforce assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      if (assignedWarehouseId.toString() !== warehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only create receipts for your assigned warehouse",
+        });
+      }
     }
 
     // Verify warehouse exists
@@ -210,6 +240,18 @@ export const updateReceipt = async (req, res) => {
       });
     }
 
+    // For warehouse staff, ensure they can only update receipts from their assigned warehouse
+    if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+      const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+      const receiptWarehouseId = receipt.warehouseId._id || receipt.warehouseId;
+      if (assignedWarehouseId.toString() !== receiptWarehouseId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only update receipts from your assigned warehouse",
+        });
+      }
+    }
+
     // Cannot update validated receipts
     if (receipt.status === 'done') {
       return res.status(400).json({
@@ -235,6 +277,17 @@ export const updateReceipt = async (req, res) => {
     if (supplierEmail !== undefined) receipt.supplierEmail = supplierEmail;
     if (supplierPhone !== undefined) receipt.supplierPhone = supplierPhone;
     if (warehouseId) {
+      // For warehouse staff, enforce assigned warehouse
+      if (req.user.role === 'warehouse' && req.user.assignedWarehouse) {
+        const assignedWarehouseId = req.user.assignedWarehouse._id || req.user.assignedWarehouse;
+        if (assignedWarehouseId.toString() !== warehouseId.toString()) {
+          return res.status(403).json({
+            success: false,
+            message: "You can only update receipts for your assigned warehouse",
+          });
+        }
+      }
+      
       const warehouse = await Warehouse.findById(warehouseId);
       if (!warehouse) {
         return res.status(404).json({
@@ -314,9 +367,26 @@ export const validateReceipt = async (req, res) => {
       });
     }
 
-    // Update stock for each item
+    // Update stock for each item and log movements
     for (const item of receipt.items) {
+      const product = await Product.findById(item.productId);
+      const quantityBefore = product.stockByLocation.get(item.locationId) || 0;
+      
       await updateProductStock(item.productId, item.locationId, item.quantity, 'add');
+      
+      // Log stock movement
+      await logStockMovement({
+        movementType: 'receipt',
+        documentId: receipt._id,
+        documentNumber: receipt.receiptNumber,
+        productId: item.productId,
+        warehouseId: receipt.warehouseId,
+        locationId: item.locationId,
+        quantity: item.quantity,
+        reference: receipt.supplier,
+        notes: receipt.notes || "",
+        performedBy: req.user._id
+      });
     }
 
     // Update receipt status

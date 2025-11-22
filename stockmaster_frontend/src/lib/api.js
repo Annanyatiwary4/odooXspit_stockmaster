@@ -361,5 +361,21 @@ export const adjustmentsAPI = {
   },
 };
 
+// Stock Ledger API
+export const ledgerAPI = {
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/ledger?${queryString}`);
+  },
+  getByProduct: async (productId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/ledger/product/${productId}?${queryString}`);
+  },
+  getByWarehouse: async (warehouseId, params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/ledger/warehouse/${warehouseId}?${queryString}`);
+  },
+};
+
 export default apiRequest;
 
