@@ -8,6 +8,9 @@ import { ForgotPassword } from "./components/auth/ForgotPassword";
 import { AdminDashboard } from "./pages/dashboards/AdminDashboard";
 import { ManagerDashboard } from "./pages/dashboards/ManagerDashboard";
 import { WarehouseDashboard } from "./pages/dashboards/WarehouseDashboard";
+import { Products } from "./pages/admin/Products";
+import { Warehouses } from "./pages/admin/Warehouses";
+import { Users } from "./pages/admin/Users";
 import { Profile } from "./pages/Profile";
 import { Unauthorized } from "./pages/Unauthorized";
 
@@ -51,6 +54,30 @@ function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/products"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager']}>
+              <Products />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/warehouses"
+          element={
+            <ProtectedRoute requiredRoles="admin">
+              <Warehouses />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute requiredRoles="admin">
+              <Users />
             </ProtectedRoute>
           }
         />

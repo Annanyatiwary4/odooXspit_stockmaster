@@ -107,5 +107,115 @@ export const authAPI = {
   },
 };
 
+// Products API
+export const productsAPI = {
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/products?${queryString}`);
+  },
+  getById: async (id) => {
+    return apiRequest(`/products/${id}`);
+  },
+  create: async (data) => {
+    return apiRequest('/products', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  update: async (id, data) => {
+    return apiRequest(`/products/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  delete: async (id) => {
+    return apiRequest(`/products/${id}`, {
+      method: 'DELETE',
+    });
+  },
+  updateStock: async (id, locationId, quantity) => {
+    return apiRequest(`/products/${id}/stock`, {
+      method: 'PUT',
+      body: { locationId, quantity },
+    });
+  },
+  getCategories: async () => {
+    return apiRequest('/products/categories');
+  },
+};
+
+// Warehouses API
+export const warehousesAPI = {
+  getAll: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/warehouses?${queryString}`);
+  },
+  getById: async (id) => {
+    return apiRequest(`/warehouses/${id}`);
+  },
+  create: async (data) => {
+    return apiRequest('/warehouses', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  update: async (id, data) => {
+    return apiRequest(`/warehouses/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  delete: async (id) => {
+    return apiRequest(`/warehouses/${id}`, {
+      method: 'DELETE',
+    });
+  },
+  addLocation: async (warehouseId, data) => {
+    return apiRequest(`/warehouses/${warehouseId}/locations`, {
+      method: 'POST',
+      body: data,
+    });
+  },
+  updateLocation: async (warehouseId, locationId, data) => {
+    return apiRequest(`/warehouses/${warehouseId}/locations/${locationId}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  deleteLocation: async (warehouseId, locationId) => {
+    return apiRequest(`/warehouses/${warehouseId}/locations/${locationId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Admin API
+export const adminAPI = {
+  getUsers: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/users?${queryString}`);
+  },
+  createUser: async (data) => {
+    return apiRequest('/admin/users', {
+      method: 'POST',
+      body: data,
+    });
+  },
+  updateUser: async (id, data) => {
+    return apiRequest(`/admin/users/${id}`, {
+      method: 'PUT',
+      body: data,
+    });
+  },
+  deactivateUser: async (id) => {
+    return apiRequest(`/admin/users/${id}/deactivate`, {
+      method: 'PUT',
+    });
+  },
+  getDashboardStats: async () => {
+    return apiRequest('/admin/dashboard');
+  },
+};
+
 export default apiRequest;
 
