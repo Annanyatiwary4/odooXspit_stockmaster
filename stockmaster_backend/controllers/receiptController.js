@@ -370,19 +370,30 @@ export const validateReceipt = async (req, res) => {
     // Update stock for each item and log movements
     for (const item of receipt.items) {
       const product = await Product.findById(item.productId);
+      if (!product) {
+        throw new Error(`Product with ID ${item.productId} not found`);
+      }
       const quantityBefore = product.stockByLocation.get(item.locationId) || 0;
       
       await updateProductStock(item.productId, item.locationId, item.quantity, 'add');
       
-      // Log stock movement
+      // Get warehouse ID (handle both populated and non-populated cases)
+      const warehouseId = receipt.warehouseId._id || receipt.warehouseId;
+      
+      // Calculate quantity after
+      const quantityAfter = quantityBefore + item.quantity;
+      
+      // Log stock movement with explicit quantities
       await logStockMovement({
         movementType: 'receipt',
         documentId: receipt._id,
         documentNumber: receipt.receiptNumber,
         productId: item.productId,
-        warehouseId: receipt.warehouseId,
+        warehouseId: warehouseId,
         locationId: item.locationId,
         quantity: item.quantity,
+        quantityBefore: quantityBefore,
+        quantityAfter: quantityAfter,
         reference: receipt.supplier,
         notes: receipt.notes || "",
         performedBy: req.user._id

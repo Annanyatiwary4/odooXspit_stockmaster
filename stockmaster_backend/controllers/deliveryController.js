@@ -566,17 +566,38 @@ export const validateDelivery = async (req, res) => {
 
     // Update stock for each item (subtract) and log movements
     for (const item of delivery.items) {
+      // Get current stock BEFORE updating
+      const product = await Product.findById(item.productId);
+      if (!product) {
+        throw new Error(`Product with ID ${item.productId} not found`);
+      }
+      const quantityBefore = product.stockByLocation.get(item.locationId) || 0;
+      
+      // Check if sufficient stock is available
+      if (quantityBefore < item.quantity) {
+        throw new Error(`Insufficient stock for product ${product.name}. Available: ${quantityBefore}, Requested: ${item.quantity}`);
+      }
+      
+      // Update stock (subtract)
       await updateProductStock(item.productId, item.locationId, item.quantity, 'subtract');
       
-      // Log stock movement
+      // Get warehouse ID (handle both populated and non-populated cases)
+      const warehouseId = delivery.warehouseId._id || delivery.warehouseId;
+      
+      // Calculate quantity after
+      const quantityAfter = quantityBefore - item.quantity;
+      
+      // Log stock movement with explicit quantities
       await logStockMovement({
         movementType: 'delivery',
         documentId: delivery._id,
         documentNumber: delivery.deliveryNumber,
         productId: item.productId,
-        warehouseId: delivery.warehouseId,
+        warehouseId: warehouseId,
         locationId: item.locationId,
         quantity: item.quantity,
+        quantityBefore: quantityBefore,
+        quantityAfter: quantityAfter,
         reference: delivery.customer,
         notes: delivery.notes || "",
         performedBy: req.user._id
