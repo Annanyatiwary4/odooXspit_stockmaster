@@ -11,12 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Edit, Trash2, CheckCircle, X, Package } from "lucide-react";
+import { Plus, Search, Edit, Trash2, CheckCircle, X, Truck, Package, Box } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { receiptsAPI, warehousesAPI, productsAPI } from "@/lib/api";
+import { deliveriesAPI, warehousesAPI, productsAPI } from "@/lib/api";
 
-export function Receipts() {
-  const [receipts, setReceipts] = useState([]);
+export function Deliveries() {
+  const [deliveries, setDeliveries] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,49 +24,49 @@ export function Receipts() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [warehouseFilter, setWarehouseFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
-  const [editingReceipt, setEditingReceipt] = useState(null);
+  const [editingDelivery, setEditingDelivery] = useState(null);
   const [selectedWarehouse, setSelectedWarehouse] = useState(null);
+  const { isManager, isAdmin } = useAuth();
   const [formData, setFormData] = useState({
-    supplier: "",
-    supplierEmail: "",
-    supplierPhone: "",
+    customer: "",
+    customerEmail: "",
+    customerPhone: "",
+    deliveryAddress: "",
     warehouseId: "",
-    receiptDate: new Date().toISOString().split('T')[0],
-    expectedDate: "",
+    deliveryDate: new Date().toISOString().split('T')[0],
+    expectedDeliveryDate: "",
     referenceNumber: "",
     notes: "",
     status: "draft",
     items: [],
   });
-  const { isManager, isAdmin } = useAuth();
   const [itemForm, setItemForm] = useState({
     productId: "",
     quantity: "",
-    expectedQuantity: "",
     locationId: "",
     unitPrice: "",
     notes: "",
   });
 
   useEffect(() => {
-    loadReceipts();
+    loadDeliveries();
     loadWarehouses();
     loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, statusFilter, warehouseFilter]);
 
-  const loadReceipts = async () => {
+  const loadDeliveries = async () => {
     try {
       setLoading(true);
       const params = {};
       if (statusFilter !== "all") params.status = statusFilter;
       if (warehouseFilter !== "all") params.warehouseId = warehouseFilter;
       
-      const response = await receiptsAPI.getAll(params);
-      setReceipts(response.data || []);
+      const response = await deliveriesAPI.getAll(params);
+      setDeliveries(response.data || []);
     } catch (error) {
-      console.error("Error loading receipts:", error);
-      alert(error.message || "Error loading receipts");
+      console.error("Error loading deliveries:", error);
+      alert(error.message || "Error loading deliveries");
     } finally {
       setLoading(false);
     }
@@ -113,7 +113,6 @@ export function Receipts() {
     const newItem = {
       productId: itemForm.productId,
       quantity: parseFloat(itemForm.quantity),
-      expectedQuantity: itemForm.expectedQuantity ? parseFloat(itemForm.expectedQuantity) : null,
       locationId: itemForm.locationId,
       unitPrice: itemForm.unitPrice ? parseFloat(itemForm.unitPrice) : 0,
       notes: itemForm.notes || "",
@@ -127,7 +126,6 @@ export function Receipts() {
     setItemForm({
       productId: "",
       quantity: "",
-      expectedQuantity: "",
       locationId: "",
       unitPrice: "",
       notes: "",
@@ -143,69 +141,89 @@ export function Receipts() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.supplier || !formData.warehouseId || formData.items.length === 0) {
-      alert("Please fill in supplier, warehouse, and add at least one item");
+    if (!formData.customer || !formData.warehouseId || formData.items.length === 0) {
+      alert("Please fill in customer, warehouse, and add at least one item");
       return;
     }
 
     try {
-      if (editingReceipt) {
-        await receiptsAPI.update(editingReceipt._id, formData);
+      if (editingDelivery) {
+        await deliveriesAPI.update(editingDelivery._id, formData);
       } else {
-        await receiptsAPI.create(formData);
+        await deliveriesAPI.create(formData);
       }
       setShowForm(false);
-      setEditingReceipt(null);
+      setEditingDelivery(null);
       resetForm();
-      loadReceipts();
+      loadDeliveries();
     } catch (error) {
-      alert(error.message || "Error saving receipt");
+      alert(error.message || "Error saving delivery");
     }
   };
 
-  const handleEdit = (receipt) => {
-    setEditingReceipt(receipt);
+  const handleEdit = (delivery) => {
+    setEditingDelivery(delivery);
     setFormData({
-      supplier: receipt.supplier,
-      supplierEmail: receipt.supplierEmail || "",
-      supplierPhone: receipt.supplierPhone || "",
-      warehouseId: receipt.warehouseId._id || receipt.warehouseId,
-      receiptDate: receipt.receiptDate ? new Date(receipt.receiptDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      expectedDate: receipt.expectedDate ? new Date(receipt.expectedDate).toISOString().split('T')[0] : "",
-      referenceNumber: receipt.referenceNumber || "",
-      notes: receipt.notes || "",
-      status: receipt.status || 'draft',
-      // normalize items to primitive shapes expected by the form
-      items: (receipt.items || []).map((it) => ({
+      customer: delivery.customer,
+      customerEmail: delivery.customerEmail || "",
+      customerPhone: delivery.customerPhone || "",
+      deliveryAddress: delivery.deliveryAddress || "",
+      warehouseId: delivery.warehouseId._id || delivery.warehouseId,
+      deliveryDate: delivery.deliveryDate ? new Date(delivery.deliveryDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      expectedDeliveryDate: delivery.expectedDeliveryDate ? new Date(delivery.expectedDeliveryDate).toISOString().split('T')[0] : "",
+      referenceNumber: delivery.referenceNumber || "",
+      notes: delivery.notes || "",
+      status: delivery.status || 'draft',
+      items: (delivery.items || []).map((it) => ({
         productId: it.productId && it.productId._id ? it.productId._id : it.productId,
         quantity: it.quantity,
-        expectedQuantity: it.expectedQuantity || "",
         locationId: it.locationId,
         unitPrice: it.unitPrice || "",
         notes: it.notes || "",
       })),
     });
-    handleWarehouseChange(receipt.warehouseId._id || receipt.warehouseId);
+    handleWarehouseChange(delivery.warehouseId._id || delivery.warehouseId);
     setShowForm(true);
   };
 
-  const handleValidate = async (id) => {
-    if (!confirm("Are you sure you want to validate this receipt? Stock will be updated automatically.")) return;
+  const handlePick = async (id) => {
+    if (!confirm("Mark all items as picked?")) return;
     try {
-      await receiptsAPI.validate(id);
-      loadReceipts();
-      alert("Receipt validated successfully");
+      await deliveriesAPI.pick(id);
+      loadDeliveries();
+      alert("Items marked as picked");
     } catch (error) {
-      alert(error.message || "Error validating receipt");
+      alert(error.message || "Error picking items");
+    }
+  };
+
+  const handlePack = async (id) => {
+    if (!confirm("Mark all items as packed?")) return;
+    try {
+      await deliveriesAPI.pack(id);
+      loadDeliveries();
+      alert("Items marked as packed");
+    } catch (error) {
+      alert(error.message || "Error packing items");
+    }
+  };
+
+  const handleValidate = async (id) => {
+    if (!confirm("Are you sure you want to validate this delivery? Stock will be decreased automatically.")) return;
+    try {
+      await deliveriesAPI.validate(id);
+      loadDeliveries();
+      alert("Delivery validated successfully");
+    } catch (error) {
+      alert(error.message || "Error validating delivery");
     }
   };
 
   const handleChangeStatus = async (id, newStatus) => {
-    if (!confirm(`Change receipt status to ${newStatus.toUpperCase()}?`)) return;
+    if (!confirm(`Change delivery status to ${newStatus.toUpperCase()}?`)) return;
     try {
-      // Only send status to keep other data unchanged on server
-      await receiptsAPI.update(id, { status: newStatus });
-      loadReceipts();
+      await deliveriesAPI.update(id, { status: newStatus });
+      loadDeliveries();
       alert(`Status updated to ${newStatus}`);
     } catch (error) {
       alert(error.message || "Error updating status");
@@ -213,24 +231,25 @@ export function Receipts() {
   };
 
   const handleCancel = async (id) => {
-    if (!confirm("Are you sure you want to cancel this receipt?")) return;
+    if (!confirm("Are you sure you want to cancel this delivery?")) return;
     try {
-      await receiptsAPI.cancel(id);
-      loadReceipts();
-      alert("Receipt canceled successfully");
+      await deliveriesAPI.cancel(id);
+      loadDeliveries();
+      alert("Delivery canceled successfully");
     } catch (error) {
-      alert(error.message || "Error canceling receipt");
+      alert(error.message || "Error canceling delivery");
     }
   };
 
   const resetForm = () => {
     setFormData({
-      supplier: "",
-      supplierEmail: "",
-      supplierPhone: "",
+      customer: "",
+      customerEmail: "",
+      customerPhone: "",
+      deliveryAddress: "",
       warehouseId: "",
-      receiptDate: new Date().toISOString().split('T')[0],
-      expectedDate: "",
+      deliveryDate: new Date().toISOString().split('T')[0],
+      expectedDeliveryDate: "",
       referenceNumber: "",
       notes: "",
       status: "draft",
@@ -240,7 +259,6 @@ export function Receipts() {
     setItemForm({
       productId: "",
       quantity: "",
-      expectedQuantity: "",
       locationId: "",
       unitPrice: "",
       notes: "",
@@ -251,7 +269,9 @@ export function Receipts() {
     const colors = {
       draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
       waiting: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-      ready: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+      picking: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+      packing: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+      ready: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
       done: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
       canceled: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
     };
@@ -263,15 +283,17 @@ export function Receipts() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Receipts</h1>
+            <h1 className="text-3xl font-bold">Delivery Orders</h1>
             <p className="text-muted-foreground mt-1">
-              Manage incoming stock receipts
+              Manage outgoing stock deliveries
             </p>
           </div>
-          <Button onClick={() => { setShowForm(true); resetForm(); }}>
-            <Plus className="size-4 mr-2" />
-            New Receipt
-          </Button>
+          {(isManager() || isAdmin()) && (
+            <Button onClick={() => { setShowForm(true); resetForm(); }}>
+              <Plus className="size-4 mr-2" />
+              New Delivery
+            </Button>
+          )}
         </div>
 
         {/* Filters */}
@@ -283,7 +305,7 @@ export function Receipts() {
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 size-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by supplier or reference..."
+                    placeholder="Search by customer or reference..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-8"
@@ -300,6 +322,8 @@ export function Receipts() {
                     <SelectItem value="all">All Statuses</SelectItem>
                     <SelectItem value="draft">Draft</SelectItem>
                     <SelectItem value="waiting">Waiting</SelectItem>
+                    <SelectItem value="picking">Picking</SelectItem>
+                    <SelectItem value="packing">Packing</SelectItem>
                     <SelectItem value="ready">Ready</SelectItem>
                     <SelectItem value="done">Done</SelectItem>
                     <SelectItem value="canceled">Canceled</SelectItem>
@@ -326,36 +350,22 @@ export function Receipts() {
           </CardContent>
         </Card>
 
-        {/* Receipt Form Modal */}
-        {showForm && (
+        {/* Delivery Form */}
+        {showForm && (isManager() || isAdmin()) && (
           <Card>
             <CardHeader>
-              <CardTitle>{editingReceipt ? "Edit Receipt" : "New Receipt"}</CardTitle>
+              <CardTitle>{editingDelivery ? "Edit Delivery" : "New Delivery"}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label>Supplier *</Label>
+                    <Label>Customer *</Label>
                     <Input
-                      value={formData.supplier}
-                      onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                      value={formData.customer}
+                      onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
                       required
                     />
-                  </div>
-                  <div>
-                    <Label>Status</Label>
-                    <Select value={formData.status} onValueChange={(val) => setFormData({ ...formData, status: val })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="waiting">Waiting</SelectItem>
-                        <SelectItem value="ready">Ready</SelectItem>
-                        <SelectItem value="canceled">Canceled</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
                   <div>
                     <Label>Warehouse *</Label>
@@ -373,35 +383,42 @@ export function Receipts() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Supplier Email</Label>
+                    <Label>Customer Email</Label>
                     <Input
                       type="email"
-                      value={formData.supplierEmail}
-                      onChange={(e) => setFormData({ ...formData, supplierEmail: e.target.value })}
+                      value={formData.customerEmail}
+                      onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
                     />
                   </div>
                   <div>
-                    <Label>Supplier Phone</Label>
+                    <Label>Customer Phone</Label>
                     <Input
-                      value={formData.supplierPhone}
-                      onChange={(e) => setFormData({ ...formData, supplierPhone: e.target.value })}
+                      value={formData.customerPhone}
+                      onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
                     />
                   </div>
                   <div>
-                    <Label>Receipt Date *</Label>
+                    <Label>Delivery Address</Label>
+                    <Input
+                      value={formData.deliveryAddress}
+                      onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Delivery Date *</Label>
                     <Input
                       type="date"
-                      value={formData.receiptDate}
-                      onChange={(e) => setFormData({ ...formData, receiptDate: e.target.value })}
+                      value={formData.deliveryDate}
+                      onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
                       required
                     />
                   </div>
                   <div>
-                    <Label>Expected Date</Label>
+                    <Label>Expected Delivery Date</Label>
                     <Input
                       type="date"
-                      value={formData.expectedDate}
-                      onChange={(e) => setFormData({ ...formData, expectedDate: e.target.value })}
+                      value={formData.expectedDeliveryDate}
+                      onChange={(e) => setFormData({ ...formData, expectedDeliveryDate: e.target.value })}
                     />
                   </div>
                   <div>
@@ -416,7 +433,7 @@ export function Receipts() {
                 {/* Add Item Form */}
                 <div className="border-t pt-4">
                   <h3 className="font-semibold mb-4">Add Items</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                       <Label>Product *</Label>
                       <Select value={itemForm.productId} onValueChange={(val) => setItemForm({ ...itemForm, productId: val })}>
@@ -457,16 +474,6 @@ export function Receipts() {
                         placeholder="0"
                       />
                     </div>
-                    <div>
-                      <Label>Expected Qty</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={itemForm.expectedQuantity}
-                        onChange={(e) => setItemForm({ ...itemForm, expectedQuantity: e.target.value })}
-                        placeholder="0"
-                      />
-                    </div>
                     <div className="flex items-end">
                       <Button type="button" onClick={handleAddItem} className="w-full">
                         <Plus className="size-4 mr-2" />
@@ -489,7 +496,7 @@ export function Receipts() {
                             <div className="flex-1">
                               <p className="font-medium">{product?.name || item.productId}</p>
                               <p className="text-sm text-muted-foreground">
-                                {item.quantity} {product?.uom || ""} at {location?.name || item.locationId}
+                                {item.quantity} {product?.uom || ""} from {location?.name || item.locationId}
                               </p>
                             </div>
                             <Button
@@ -517,7 +524,7 @@ export function Receipts() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button type="submit">{editingReceipt ? "Update" : "Create"} Receipt</Button>
+                  <Button type="submit">{editingDelivery ? "Update" : "Create"} Delivery</Button>
                   <Button type="button" variant="outline" onClick={() => { setShowForm(false); resetForm(); }}>
                     Cancel
                   </Button>
@@ -527,81 +534,110 @@ export function Receipts() {
           </Card>
         )}
 
-        {/* Receipts List */}
+        {/* Deliveries List */}
         {!showForm && (
           loading ? (
             <div className="text-center py-8">Loading...</div>
-          ) : receipts.length === 0 ? (
+          ) : deliveries.length === 0 ? (
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center py-8 text-muted-foreground">
-                  <Package className="size-12 mx-auto mb-2 opacity-50" />
-                  <p>No receipts found</p>
+                  <Truck className="size-12 mx-auto mb-2 opacity-50" />
+                  <p>No deliveries found</p>
                 </div>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
-              {receipts.map((receipt) => (
-                <Card key={receipt._id}>
+              {deliveries.map((delivery) => (
+                <Card key={delivery._id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="flex items-center gap-2">
-                          {receipt.receiptNumber}
-                          <span className={`text-xs px-2 py-1 rounded ${getStatusColor(receipt.status)}`}>
-                            {receipt.status.toUpperCase()}
+                          {delivery.deliveryNumber}
+                          <span className={`text-xs px-2 py-1 rounded ${getStatusColor(delivery.status)}`}>
+                            {delivery.status.toUpperCase()}
                           </span>
                         </CardTitle>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Supplier: {receipt.supplier} | Warehouse: {receipt.warehouseId?.name || receipt.warehouseId}
+                          Customer: {delivery.customer} | Warehouse: {delivery.warehouseId?.name || delivery.warehouseId}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Date: {new Date(receipt.receiptDate).toLocaleDateString()}
-                          {receipt.referenceNumber && ` | Ref: ${receipt.referenceNumber}`}
+                          Date: {new Date(delivery.deliveryDate).toLocaleDateString()}
+                          {delivery.referenceNumber && ` | Ref: ${delivery.referenceNumber}`}
                         </p>
+                        {delivery.deliveryAddress && (
+                          <p className="text-sm text-muted-foreground">
+                            Address: {delivery.deliveryAddress}
+                          </p>
+                        )}
                       </div>
-                      <div className="flex gap-2 items-center">
-                        {receipt.status !== 'done' && receipt.status !== 'canceled' && (
+                      <div className="flex gap-2 items-center flex-wrap">
+                        {delivery.status !== 'done' && delivery.status !== 'canceled' && (
                           <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(receipt)}
-                            >
-                              <Edit className="size-4 mr-2" />
-                              Edit
-                            </Button>
-                            {receipt.status === 'ready' && (
+                            {(isManager() || isAdmin()) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(delivery)}
+                              >
+                                <Edit className="size-4 mr-2" />
+                                Edit
+                              </Button>
+                            )}
+                            {delivery.status === 'waiting' && (
                               <Button
                                 size="sm"
-                                onClick={() => handleValidate(receipt._id)}
+                                variant="outline"
+                                onClick={() => handlePick(delivery._id)}
+                              >
+                                <Package className="size-4 mr-2" />
+                                Pick
+                              </Button>
+                            )}
+                            {delivery.status === 'picking' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handlePack(delivery._id)}
+                              >
+                                <Box className="size-4 mr-2" />
+                                Pack
+                              </Button>
+                            )}
+                            {delivery.status === 'ready' && (isManager() || isAdmin()) && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleValidate(delivery._id)}
                               >
                                 <CheckCircle className="size-4 mr-2" />
                                 Validate
                               </Button>
                             )}
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleCancel(receipt._id)}
-                            >
-                              <Trash2 className="size-4 mr-2" />
-                              Cancel
-                            </Button>
+                            {(isManager() || isAdmin()) && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleCancel(delivery._id)}
+                              >
+                                <Trash2 className="size-4 mr-2" />
+                                Cancel
+                              </Button>
+                            )}
                           </>
                         )}
-
-                        {/* Status change select for managers/admins - separate action */}
-                        {(isManager() || isAdmin()) && receipt.status !== 'done' && (
+                        {(isManager() || isAdmin()) && delivery.status !== 'done' && (
                           <div className="w-40">
-                            <Select value={receipt.status} onValueChange={(val) => handleChangeStatus(receipt._id, val)}>
+                            <Select value={delivery.status} onValueChange={(val) => handleChangeStatus(delivery._id, val)}>
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent position="item-aligned">
                                 <SelectItem value="draft">Draft</SelectItem>
                                 <SelectItem value="waiting">Waiting</SelectItem>
+                                <SelectItem value="picking">Picking</SelectItem>
+                                <SelectItem value="packing">Packing</SelectItem>
                                 <SelectItem value="ready">Ready</SelectItem>
                                 <SelectItem value="canceled">Canceled</SelectItem>
                               </SelectContent>
@@ -614,11 +650,13 @@ export function Receipts() {
                   <CardContent>
                     <div className="space-y-2">
                       <h4 className="font-semibold">Items:</h4>
-                      {receipt.items.map((item, index) => {
+                      {delivery.items.map((item, index) => {
                         const product = item.productId?.name || item.productId;
                         return (
                           <div key={index} className="text-sm">
                             {product} - {item.quantity} {item.productId?.uom || ""}
+                            {item.pickedQuantity > 0 && ` (Picked: ${item.pickedQuantity})`}
+                            {item.packedQuantity > 0 && ` (Packed: ${item.packedQuantity})`}
                           </div>
                         );
                       })}

@@ -11,62 +11,58 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, Edit, Trash2, CheckCircle, X, Package } from "lucide-react";
+import { Plus, Search, Edit, Trash2, CheckCircle, X, Move, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { receiptsAPI, warehousesAPI, productsAPI } from "@/lib/api";
+import { transfersAPI, warehousesAPI, productsAPI } from "@/lib/api";
 
-export function Receipts() {
-  const [receipts, setReceipts] = useState([]);
+export function Transfers() {
+  const [transfers, setTransfers] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [warehouseFilter, setWarehouseFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
-  const [editingReceipt, setEditingReceipt] = useState(null);
-  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
+  const [editingTransfer, setEditingTransfer] = useState(null);
+  const [sourceWarehouse, setSourceWarehouse] = useState(null);
+  const [destWarehouse, setDestWarehouse] = useState(null);
+  const { isManager, isAdmin } = useAuth();
   const [formData, setFormData] = useState({
-    supplier: "",
-    supplierEmail: "",
-    supplierPhone: "",
-    warehouseId: "",
-    receiptDate: new Date().toISOString().split('T')[0],
-    expectedDate: "",
-    referenceNumber: "",
+    sourceWarehouseId: "",
+    sourceLocationId: "",
+    destinationWarehouseId: "",
+    destinationLocationId: "",
+    transferDate: new Date().toISOString().split('T')[0],
+    scheduledDate: "",
+    reason: "",
     notes: "",
     status: "draft",
     items: [],
   });
-  const { isManager, isAdmin } = useAuth();
   const [itemForm, setItemForm] = useState({
     productId: "",
     quantity: "",
-    expectedQuantity: "",
-    locationId: "",
-    unitPrice: "",
     notes: "",
   });
 
   useEffect(() => {
-    loadReceipts();
+    loadTransfers();
     loadWarehouses();
     loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, statusFilter, warehouseFilter]);
+  }, [searchTerm, statusFilter]);
 
-  const loadReceipts = async () => {
+  const loadTransfers = async () => {
     try {
       setLoading(true);
       const params = {};
       if (statusFilter !== "all") params.status = statusFilter;
-      if (warehouseFilter !== "all") params.warehouseId = warehouseFilter;
       
-      const response = await receiptsAPI.getAll(params);
-      setReceipts(response.data || []);
+      const response = await transfersAPI.getAll(params);
+      setTransfers(response.data || []);
     } catch (error) {
-      console.error("Error loading receipts:", error);
-      alert(error.message || "Error loading receipts");
+      console.error("Error loading transfers:", error);
+      alert(error.message || "Error loading transfers");
     } finally {
       setLoading(false);
     }
@@ -90,32 +86,43 @@ export function Receipts() {
     }
   };
 
-  const handleWarehouseChange = async (warehouseId) => {
-    setFormData((prev) => ({ ...prev, warehouseId }));
+  const handleSourceWarehouseChange = async (warehouseId) => {
+    setFormData((prev) => ({ ...prev, sourceWarehouseId: warehouseId, sourceLocationId: "" }));
     if (warehouseId) {
       try {
         const warehouse = await warehousesAPI.getById(warehouseId);
-        setSelectedWarehouse(warehouse.data);
+        setSourceWarehouse(warehouse.data);
       } catch (error) {
         console.error("Error loading warehouse:", error);
       }
     } else {
-      setSelectedWarehouse(null);
+      setSourceWarehouse(null);
+    }
+  };
+
+  const handleDestWarehouseChange = async (warehouseId) => {
+    setFormData((prev) => ({ ...prev, destinationWarehouseId: warehouseId, destinationLocationId: "" }));
+    if (warehouseId) {
+      try {
+        const warehouse = await warehousesAPI.getById(warehouseId);
+        setDestWarehouse(warehouse.data);
+      } catch (error) {
+        console.error("Error loading warehouse:", error);
+      }
+    } else {
+      setDestWarehouse(null);
     }
   };
 
   const handleAddItem = () => {
-    if (!itemForm.productId || !itemForm.quantity || !itemForm.locationId) {
-      alert("Please fill in product, quantity, and location");
+    if (!itemForm.productId || !itemForm.quantity) {
+      alert("Please fill in product and quantity");
       return;
     }
 
     const newItem = {
       productId: itemForm.productId,
       quantity: parseFloat(itemForm.quantity),
-      expectedQuantity: itemForm.expectedQuantity ? parseFloat(itemForm.expectedQuantity) : null,
-      locationId: itemForm.locationId,
-      unitPrice: itemForm.unitPrice ? parseFloat(itemForm.unitPrice) : 0,
       notes: itemForm.notes || "",
     };
 
@@ -127,9 +134,6 @@ export function Receipts() {
     setItemForm({
       productId: "",
       quantity: "",
-      expectedQuantity: "",
-      locationId: "",
-      unitPrice: "",
       notes: "",
     });
   };
@@ -143,69 +147,67 @@ export function Receipts() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.supplier || !formData.warehouseId || formData.items.length === 0) {
-      alert("Please fill in supplier, warehouse, and add at least one item");
+    if (!formData.sourceWarehouseId || !formData.sourceLocationId || 
+        !formData.destinationWarehouseId || !formData.destinationLocationId || 
+        formData.items.length === 0) {
+      alert("Please fill in source, destination, and add at least one item");
       return;
     }
 
     try {
-      if (editingReceipt) {
-        await receiptsAPI.update(editingReceipt._id, formData);
+      if (editingTransfer) {
+        await transfersAPI.update(editingTransfer._id, formData);
       } else {
-        await receiptsAPI.create(formData);
+        await transfersAPI.create(formData);
       }
       setShowForm(false);
-      setEditingReceipt(null);
+      setEditingTransfer(null);
       resetForm();
-      loadReceipts();
+      loadTransfers();
     } catch (error) {
-      alert(error.message || "Error saving receipt");
+      alert(error.message || "Error saving transfer");
     }
   };
 
-  const handleEdit = (receipt) => {
-    setEditingReceipt(receipt);
+  const handleEdit = (transfer) => {
+    setEditingTransfer(transfer);
     setFormData({
-      supplier: receipt.supplier,
-      supplierEmail: receipt.supplierEmail || "",
-      supplierPhone: receipt.supplierPhone || "",
-      warehouseId: receipt.warehouseId._id || receipt.warehouseId,
-      receiptDate: receipt.receiptDate ? new Date(receipt.receiptDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      expectedDate: receipt.expectedDate ? new Date(receipt.expectedDate).toISOString().split('T')[0] : "",
-      referenceNumber: receipt.referenceNumber || "",
-      notes: receipt.notes || "",
-      status: receipt.status || 'draft',
-      // normalize items to primitive shapes expected by the form
-      items: (receipt.items || []).map((it) => ({
+      sourceWarehouseId: transfer.sourceWarehouseId._id || transfer.sourceWarehouseId,
+      sourceLocationId: transfer.sourceLocationId,
+      destinationWarehouseId: transfer.destinationWarehouseId._id || transfer.destinationWarehouseId,
+      destinationLocationId: transfer.destinationLocationId,
+      transferDate: transfer.transferDate ? new Date(transfer.transferDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      scheduledDate: transfer.scheduledDate ? new Date(transfer.scheduledDate).toISOString().split('T')[0] : "",
+      reason: transfer.reason || "",
+      notes: transfer.notes || "",
+      status: transfer.status || 'draft',
+      items: (transfer.items || []).map((it) => ({
         productId: it.productId && it.productId._id ? it.productId._id : it.productId,
         quantity: it.quantity,
-        expectedQuantity: it.expectedQuantity || "",
-        locationId: it.locationId,
-        unitPrice: it.unitPrice || "",
         notes: it.notes || "",
       })),
     });
-    handleWarehouseChange(receipt.warehouseId._id || receipt.warehouseId);
+    handleSourceWarehouseChange(transfer.sourceWarehouseId._id || transfer.sourceWarehouseId);
+    handleDestWarehouseChange(transfer.destinationWarehouseId._id || transfer.destinationWarehouseId);
     setShowForm(true);
   };
 
-  const handleValidate = async (id) => {
-    if (!confirm("Are you sure you want to validate this receipt? Stock will be updated automatically.")) return;
+  const handleExecute = async (id) => {
+    if (!confirm("Are you sure you want to execute this transfer? Stock will be moved between locations.")) return;
     try {
-      await receiptsAPI.validate(id);
-      loadReceipts();
-      alert("Receipt validated successfully");
+      await transfersAPI.execute(id);
+      loadTransfers();
+      alert("Transfer executed successfully");
     } catch (error) {
-      alert(error.message || "Error validating receipt");
+      alert(error.message || "Error executing transfer");
     }
   };
 
   const handleChangeStatus = async (id, newStatus) => {
-    if (!confirm(`Change receipt status to ${newStatus.toUpperCase()}?`)) return;
+    if (!confirm(`Change transfer status to ${newStatus.toUpperCase()}?`)) return;
     try {
-      // Only send status to keep other data unchanged on server
-      await receiptsAPI.update(id, { status: newStatus });
-      loadReceipts();
+      await transfersAPI.update(id, { status: newStatus });
+      loadTransfers();
       alert(`Status updated to ${newStatus}`);
     } catch (error) {
       alert(error.message || "Error updating status");
@@ -213,36 +215,34 @@ export function Receipts() {
   };
 
   const handleCancel = async (id) => {
-    if (!confirm("Are you sure you want to cancel this receipt?")) return;
+    if (!confirm("Are you sure you want to cancel this transfer?")) return;
     try {
-      await receiptsAPI.cancel(id);
-      loadReceipts();
-      alert("Receipt canceled successfully");
+      await transfersAPI.cancel(id);
+      loadTransfers();
+      alert("Transfer canceled successfully");
     } catch (error) {
-      alert(error.message || "Error canceling receipt");
+      alert(error.message || "Error canceling transfer");
     }
   };
 
   const resetForm = () => {
     setFormData({
-      supplier: "",
-      supplierEmail: "",
-      supplierPhone: "",
-      warehouseId: "",
-      receiptDate: new Date().toISOString().split('T')[0],
-      expectedDate: "",
-      referenceNumber: "",
+      sourceWarehouseId: "",
+      sourceLocationId: "",
+      destinationWarehouseId: "",
+      destinationLocationId: "",
+      transferDate: new Date().toISOString().split('T')[0],
+      scheduledDate: "",
+      reason: "",
       notes: "",
       status: "draft",
       items: [],
     });
-    setSelectedWarehouse(null);
+    setSourceWarehouse(null);
+    setDestWarehouse(null);
     setItemForm({
       productId: "",
       quantity: "",
-      expectedQuantity: "",
-      locationId: "",
-      unitPrice: "",
       notes: "",
     });
   };
@@ -263,27 +263,29 @@ export function Receipts() {
       <div className="p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Receipts</h1>
+            <h1 className="text-3xl font-bold">Internal Transfers</h1>
             <p className="text-muted-foreground mt-1">
-              Manage incoming stock receipts
+              Move stock between locations
             </p>
           </div>
-          <Button onClick={() => { setShowForm(true); resetForm(); }}>
-            <Plus className="size-4 mr-2" />
-            New Receipt
-          </Button>
+          {(isManager() || isAdmin()) && (
+            <Button onClick={() => { setShowForm(true); resetForm(); }}>
+              <Plus className="size-4 mr-2" />
+              New Transfer
+            </Button>
+          )}
         </div>
 
         {/* Filters */}
         <Card>
           <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Search</Label>
                 <div className="relative">
                   <Search className="absolute left-2 top-2.5 size-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by supplier or reference..."
+                    placeholder="Search by transfer number..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-8"
@@ -306,62 +308,24 @@ export function Receipts() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>Warehouse</Label>
-                <Select value={warehouseFilter} onValueChange={setWarehouseFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Warehouses</SelectItem>
-                    {warehouses.map((wh) => (
-                      <SelectItem key={wh._id} value={wh._id}>
-                        {wh.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Receipt Form Modal */}
-        {showForm && (
+        {/* Transfer Form */}
+        {showForm && (isManager() || isAdmin()) && (
           <Card>
             <CardHeader>
-              <CardTitle>{editingReceipt ? "Edit Receipt" : "New Receipt"}</CardTitle>
+              <CardTitle>{editingTransfer ? "Edit Transfer" : "New Transfer"}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label>Supplier *</Label>
-                    <Input
-                      value={formData.supplier}
-                      onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label>Status</Label>
-                    <Select value={formData.status} onValueChange={(val) => setFormData({ ...formData, status: val })}>
+                    <Label>Source Warehouse *</Label>
+                    <Select value={formData.sourceWarehouseId} onValueChange={handleSourceWarehouseChange}>
                       <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="waiting">Waiting</SelectItem>
-                        <SelectItem value="ready">Ready</SelectItem>
-                        <SelectItem value="canceled">Canceled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Warehouse *</Label>
-                    <Select value={formData.warehouseId} onValueChange={handleWarehouseChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select warehouse" />
+                        <SelectValue placeholder="Select source warehouse" />
                       </SelectTrigger>
                       <SelectContent>
                         {warehouses.map((wh) => (
@@ -373,42 +337,73 @@ export function Receipts() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Supplier Email</Label>
-                    <Input
-                      type="email"
-                      value={formData.supplierEmail}
-                      onChange={(e) => setFormData({ ...formData, supplierEmail: e.target.value })}
-                    />
+                    <Label>Source Location *</Label>
+                    <Select value={formData.sourceLocationId} onValueChange={(val) => setFormData({ ...formData, sourceLocationId: val })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select source location" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sourceWarehouse?.locations?.map((loc) => (
+                          <SelectItem key={loc._id} value={loc._id}>
+                            {loc.name} ({loc.code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
-                    <Label>Supplier Phone</Label>
-                    <Input
-                      value={formData.supplierPhone}
-                      onChange={(e) => setFormData({ ...formData, supplierPhone: e.target.value })}
-                    />
+                    <Label>Destination Warehouse *</Label>
+                    <Select value={formData.destinationWarehouseId} onValueChange={handleDestWarehouseChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select destination warehouse" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {warehouses.map((wh) => (
+                          <SelectItem key={wh._id} value={wh._id}>
+                            {wh.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
-                    <Label>Receipt Date *</Label>
+                    <Label>Destination Location *</Label>
+                    <Select value={formData.destinationLocationId} onValueChange={(val) => setFormData({ ...formData, destinationLocationId: val })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select destination location" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {destWarehouse?.locations?.map((loc) => (
+                          <SelectItem key={loc._id} value={loc._id}>
+                            {loc.name} ({loc.code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Transfer Date *</Label>
                     <Input
                       type="date"
-                      value={formData.receiptDate}
-                      onChange={(e) => setFormData({ ...formData, receiptDate: e.target.value })}
+                      value={formData.transferDate}
+                      onChange={(e) => setFormData({ ...formData, transferDate: e.target.value })}
                       required
                     />
                   </div>
                   <div>
-                    <Label>Expected Date</Label>
+                    <Label>Scheduled Date</Label>
                     <Input
                       type="date"
-                      value={formData.expectedDate}
-                      onChange={(e) => setFormData({ ...formData, expectedDate: e.target.value })}
+                      value={formData.scheduledDate}
+                      onChange={(e) => setFormData({ ...formData, scheduledDate: e.target.value })}
                     />
                   </div>
-                  <div>
-                    <Label>Reference Number</Label>
+                  <div className="md:col-span-2">
+                    <Label>Reason</Label>
                     <Input
-                      value={formData.referenceNumber}
-                      onChange={(e) => setFormData({ ...formData, referenceNumber: e.target.value })}
+                      value={formData.reason}
+                      onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                      placeholder="Reason for transfer..."
                     />
                   </div>
                 </div>
@@ -416,7 +411,7 @@ export function Receipts() {
                 {/* Add Item Form */}
                 <div className="border-t pt-4">
                   <h3 className="font-semibold mb-4">Add Items</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label>Product *</Label>
                       <Select value={itemForm.productId} onValueChange={(val) => setItemForm({ ...itemForm, productId: val })}>
@@ -433,37 +428,12 @@ export function Receipts() {
                       </Select>
                     </div>
                     <div>
-                      <Label>Location *</Label>
-                      <Select value={itemForm.locationId} onValueChange={(val) => setItemForm({ ...itemForm, locationId: val })}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {selectedWarehouse?.locations?.map((loc) => (
-                            <SelectItem key={loc._id} value={loc._id}>
-                              {loc.name} ({loc.code})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
                       <Label>Quantity *</Label>
                       <Input
                         type="number"
                         step="0.01"
                         value={itemForm.quantity}
                         onChange={(e) => setItemForm({ ...itemForm, quantity: e.target.value })}
-                        placeholder="0"
-                      />
-                    </div>
-                    <div>
-                      <Label>Expected Qty</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={itemForm.expectedQuantity}
-                        onChange={(e) => setItemForm({ ...itemForm, expectedQuantity: e.target.value })}
                         placeholder="0"
                       />
                     </div>
@@ -483,13 +453,12 @@ export function Receipts() {
                     <div className="space-y-2">
                       {formData.items.map((item, index) => {
                         const product = products.find(p => p._id === item.productId);
-                        const location = selectedWarehouse?.locations?.find(l => l._id === item.locationId);
                         return (
                           <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-md">
                             <div className="flex-1">
                               <p className="font-medium">{product?.name || item.productId}</p>
                               <p className="text-sm text-muted-foreground">
-                                {item.quantity} {product?.uom || ""} at {location?.name || item.locationId}
+                                {item.quantity} {product?.uom || ""}
                               </p>
                             </div>
                             <Button
@@ -517,7 +486,7 @@ export function Receipts() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button type="submit">{editingReceipt ? "Update" : "Create"} Receipt</Button>
+                  <Button type="submit">{editingTransfer ? "Update" : "Create"} Transfer</Button>
                   <Button type="button" variant="outline" onClick={() => { setShowForm(false); resetForm(); }}>
                     Cancel
                   </Button>
@@ -527,75 +496,79 @@ export function Receipts() {
           </Card>
         )}
 
-        {/* Receipts List */}
+        {/* Transfers List */}
         {!showForm && (
           loading ? (
             <div className="text-center py-8">Loading...</div>
-          ) : receipts.length === 0 ? (
+          ) : transfers.length === 0 ? (
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center py-8 text-muted-foreground">
-                  <Package className="size-12 mx-auto mb-2 opacity-50" />
-                  <p>No receipts found</p>
+                  <Move className="size-12 mx-auto mb-2 opacity-50" />
+                  <p>No transfers found</p>
                 </div>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
-              {receipts.map((receipt) => (
-                <Card key={receipt._id}>
+              {transfers.map((transfer) => (
+                <Card key={transfer._id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
                         <CardTitle className="flex items-center gap-2">
-                          {receipt.receiptNumber}
-                          <span className={`text-xs px-2 py-1 rounded ${getStatusColor(receipt.status)}`}>
-                            {receipt.status.toUpperCase()}
+                          {transfer.transferNumber}
+                          <span className={`text-xs px-2 py-1 rounded ${getStatusColor(transfer.status)}`}>
+                            {transfer.status.toUpperCase()}
                           </span>
                         </CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Supplier: {receipt.supplier} | Warehouse: {receipt.warehouseId?.name || receipt.warehouseId}
+                        <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                          <span>{transfer.sourceWarehouseId?.name || transfer.sourceWarehouseId}</span>
+                          <ArrowRight className="size-4" />
+                          <span>{transfer.destinationWarehouseId?.name || transfer.destinationWarehouseId}</span>
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Date: {new Date(receipt.receiptDate).toLocaleDateString()}
-                          {receipt.referenceNumber && ` | Ref: ${receipt.referenceNumber}`}
+                          Date: {new Date(transfer.transferDate).toLocaleDateString()}
+                          {transfer.reason && ` | Reason: ${transfer.reason}`}
                         </p>
                       </div>
-                      <div className="flex gap-2 items-center">
-                        {receipt.status !== 'done' && receipt.status !== 'canceled' && (
+                      <div className="flex gap-2 items-center flex-wrap">
+                        {transfer.status !== 'done' && transfer.status !== 'canceled' && (
                           <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(receipt)}
-                            >
-                              <Edit className="size-4 mr-2" />
-                              Edit
-                            </Button>
-                            {receipt.status === 'ready' && (
+                            {(isManager() || isAdmin()) && (
                               <Button
+                                variant="outline"
                                 size="sm"
-                                onClick={() => handleValidate(receipt._id)}
+                                onClick={() => handleEdit(transfer)}
                               >
-                                <CheckCircle className="size-4 mr-2" />
-                                Validate
+                                <Edit className="size-4 mr-2" />
+                                Edit
                               </Button>
                             )}
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleCancel(receipt._id)}
-                            >
-                              <Trash2 className="size-4 mr-2" />
-                              Cancel
-                            </Button>
+                            {transfer.status === 'ready' && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleExecute(transfer._id)}
+                              >
+                                <CheckCircle className="size-4 mr-2" />
+                                Execute
+                              </Button>
+                            )}
+                            {(isManager() || isAdmin()) && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleCancel(transfer._id)}
+                              >
+                                <Trash2 className="size-4 mr-2" />
+                                Cancel
+                              </Button>
+                            )}
                           </>
                         )}
-
-                        {/* Status change select for managers/admins - separate action */}
-                        {(isManager() || isAdmin()) && receipt.status !== 'done' && (
+                        {(isManager() || isAdmin()) && transfer.status !== 'done' && (
                           <div className="w-40">
-                            <Select value={receipt.status} onValueChange={(val) => handleChangeStatus(receipt._id, val)}>
+                            <Select value={transfer.status} onValueChange={(val) => handleChangeStatus(transfer._id, val)}>
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
@@ -614,7 +587,7 @@ export function Receipts() {
                   <CardContent>
                     <div className="space-y-2">
                       <h4 className="font-semibold">Items:</h4>
-                      {receipt.items.map((item, index) => {
+                      {transfer.items.map((item, index) => {
                         const product = item.productId?.name || item.productId;
                         return (
                           <div key={index} className="text-sm">

@@ -14,6 +14,9 @@ import { Users } from "./pages/admin/Users";
 import { StockManagement } from "./pages/admin/StockManagement";
 import { Settings } from "./pages/admin/Settings";
 import { Receipts } from "./pages/manager/Receipts";
+import { Deliveries } from "./pages/manager/Deliveries";
+import { Transfers } from "./pages/manager/Transfers";
+import { Adjustments } from "./pages/manager/Adjustments";
 import { Profile } from "./pages/Profile";
 import { Unauthorized } from "./pages/Unauthorized";
 
@@ -105,6 +108,30 @@ function App() {
           element={
             <ProtectedRoute requiredRoles={['admin', 'manager', 'warehouse']}>
               <Receipts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/deliveries"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager', 'warehouse']}>
+              <Deliveries />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/transfers"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager', 'warehouse']}>
+              <Transfers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/adjustments"
+          element={
+            <ProtectedRoute requiredRoles={['admin', 'manager', 'warehouse']}>
+              <Adjustments />
             </ProtectedRoute>
           }
         />

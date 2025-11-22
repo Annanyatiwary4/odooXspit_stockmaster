@@ -64,9 +64,23 @@ export function Sidebar() {
 
   return (
     <div className="w-64 bg-sidebar border-r border-sidebar-border h-screen flex flex-col">
-      <div className="p-6 border-b border-sidebar-border">
-        <h1 className="text-xl font-bold text-sidebar-foreground">StockMaster</h1>
-        <p className="text-sm text-sidebar-foreground/70 mt-1">Inventory Management</p>
+      <div className="p-6 border-b border-sidebar-border flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-sidebar-foreground">StockMaster</h1>
+          <p className="text-sm text-sidebar-foreground/70 mt-1">Inventory Management</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleLogout}
+            className="text-sidebar-foreground/70 hover:text-sidebar-accent-foreground"
+            title="Logout"
+          >
+            <LogOut className="size-5" />
+            <span className="sr-only">Logout</span>
+          </Button>
+        </div>
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
